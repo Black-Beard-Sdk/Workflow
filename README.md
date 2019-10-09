@@ -229,45 +229,45 @@ Exemple de configuration workflow
 
 	// Initialize
 
-			// momery starage for unit tests
-			var storage = new MemoryStorage();
-
-			// parse configuration
-            var tree = WorkflowConfigParser.ParseString(new System.Text.StringBuilder(payload));
-
-            WorkflowConfigVisitor visitor = new WorkflowConfigVisitor()
-              .AddRule("IsMajor", typeof(FunctionalRules).GetMethod("IsMajor")) -- add custom rule function
-              .AddRule("IsEmpty", typeof(FunctionalRules).GetMethod("IsEmpty"))-- add custom rule function
-            ;
-
-            visitor.Filename = "memory text";
-            WorkflowConfig config = (WorkflowConfig)tree.Visit<object>(visitor);
-
-			var configs = new WorkflowsConfig();
-			configs.AddDocument(config);
-
-
-			var processor = new WorkflowProcessor(config)
-            {
-                LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
-            };
-
-
-			// create decorator of worker on the context
-			public OutputAction CreateOutput(IWorkflowSerializer serializer, MemoryStorage storage)
-			{
-
-				return  new SetPropertiesOutputAction(
-							new PushBusActionOutputActionInMemory(storage,
-								new PushModelOutputActionInMemory(storage)
-							)
-							{
-								Serializer = serializer,
-							}
-						);
-
-			}
+	// momery starage for unit tests
+	var storage = new MemoryStorage();
+	
+	// parse configuration
+	var tree = WorkflowConfigParser.ParseString(new System.Text.StringBuilder(payload));
+	
+	WorkflowConfigVisitor visitor = new WorkflowConfigVisitor()
+	  .AddRule("IsMajor", typeof(FunctionalRules).GetMethod("IsMajor")) -- add custom rule function
+	  .AddRule("IsEmpty", typeof(FunctionalRules).GetMethod("IsEmpty"))-- add custom rule function
+	;
+	
+	visitor.Filename = "memory text";
+	WorkflowConfig config = (WorkflowConfig)tree.Visit<object>(visitor);
+	
+	var configs = new WorkflowsConfig();
+	configs.AddDocument(config);
+	
+	
+	var processor = new WorkflowProcessor(config)
+	{
+	    LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
+	    OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+	};
+	
+	
+	// create decorator of worker on the context
+	public OutputAction CreateOutput(IWorkflowSerializer serializer, MemoryStorage storage)
+	{
+	
+		return  new SetPropertiesOutputAction(
+					new PushBusActionOutputActionInMemory(storage,
+						new PushModelOutputActionInMemory(storage)
+					)
+					{
+						Serializer = serializer,
+					}
+				);
+	
+	}
 
 	// functional rules
 	public static class FunctionalRules

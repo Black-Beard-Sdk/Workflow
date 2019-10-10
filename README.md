@@ -196,12 +196,12 @@ Exemple de configuration workflow
     DEFINE CONST     agemin 18                  'min for been major';
 
     INITIALIZE WORKFLOW
-        ON EVENT Event1 WHEN !IsEmpty(name = @Event.ExternalId) 
+        ON EVENT Event1 WHEN NOT IsEmpty(name = @Event.ExternalId) 
             SWITCH State1
 
     DEFINE STATE State1                         'state 1'
         ON ENTER STATE 
-            WHEN !IsMajor(agemin = agemin)
+            WHEN NOT IsMajor(agemin = agemin)
                 EXECUTE Cut(key = @Event.ExternalId)
                      -- Cut(key = @Event.ExternalId)
                 STORE   (Status = 'InProgress')           
@@ -247,7 +247,7 @@ Exemple de configuration workflow
 	configs.AddDocument(config);
 	
 	
-	var processor = new WorkflowProcessor(config)
+	var processor = new WorkflowProcessor(configs)
 	{
 	    LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
 	    OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),

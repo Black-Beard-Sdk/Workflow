@@ -29,7 +29,6 @@ namespace UnitTestWorkflow
 
 
             IWorkflowSerializer serializer = new JsonWorkflowSerializer();
-
             var msg = serializer.Unserialize(payload);
 
            var payload2 = serializer.Serialize(msg);

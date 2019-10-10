@@ -22,8 +22,6 @@ namespace Bb.Workflows.Models
 
         public IncomingEvent IncomingEvent { get; }
 
-        public Dictionary<string, object> Arguments { get; set; }
-
         public Event Event { get; }
 
         public Event PreviousEvent { get; }

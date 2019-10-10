@@ -1,8 +1,7 @@
 /**
  * workflow engine Parser
  *
- * Copyright (c) 2009-2011 Gael beard <g.beard@pickup-services.com>
- * Copyright (c) 2015-2017 Ivan Kochurkin (KvanTTT, kvanttt@gmail.com, Positive Technologies).
+ * Copyright (c) 2017-2019 Gael beard <gaelgael5@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -174,7 +173,7 @@ type :
 key : REGULAR_ID;
 
 compositekey : 
-    AROBASE? key (DOT key)
+    AROBASE? key (DOT key)*
     ;
 
 comment : CHAR_STRING;

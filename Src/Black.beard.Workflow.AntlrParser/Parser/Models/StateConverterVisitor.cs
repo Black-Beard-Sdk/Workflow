@@ -113,7 +113,7 @@ namespace Bb.Workflows.Parser.Models
 
                 var item = parameterMethodList[i];
                 if (!m.Arguments.TryGetValue(item.Name, out string value))
-                    throw new Exceptions.MissingArgumentNameMethodReferenceException(item.Name);
+                    throw new Exceptions.MissingArgumentNameMethodReferenceException($"missing argument {item.Name} in {m.Reference.Method.Name}");
 
                 Expression p1 = GetLambdaArgument(item.Name, value, item.ParameterType);
                 if (p1 is ConstantExpression c1)

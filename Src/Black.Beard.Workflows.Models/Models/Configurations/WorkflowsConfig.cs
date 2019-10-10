@@ -15,7 +15,7 @@ namespace Bb.Workflows.Models.Configurations
             return this;
         }
 
-        public void AddDocument(WorkflowConfig config)
+        public WorkflowsConfig AddDocument(WorkflowConfig config)
         {
 
             lock (_lock)
@@ -34,6 +34,8 @@ namespace Bb.Workflows.Models.Configurations
                         _subConfigs.Add(_config);
 
             }
+
+            return this;
 
         }
 

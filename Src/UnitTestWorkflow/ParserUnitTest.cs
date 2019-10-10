@@ -6,6 +6,8 @@ using Bb.Workflows.Converters;
 using Bb.Workflows.Models;
 using Bb.Workflows.Parser;
 using Bb.Workflows.Models.Configurations;
+using Bb.Workflows.Outputs;
+using System.Text;
 
 namespace UnitTestWorkflow
 {
@@ -15,55 +17,8 @@ namespace UnitTestWorkflow
     {
 
         [TestMethod]
-        public void UnserializeEventIncoming()
+        public void TestUnserializeConfig()
         {
-
-            string payload = @"
-    NAME wrk1 VERSION 2
-    CONCURENCY 1
-    DESCRIPTION                 'workflow de test'
-    MATCHING (Country = 'France')
-
-    DEFINE EVENT     Event1                     'incoming event 1';
-    DEFINE EVENT     Event2                     'incoming event 2';
-
-    DEFINE RULE      IsMajor (INTEGER agemin)   'this method 1';
-    DEFINE RULE      IsEmpty (TEXT name)        'this method 2'; 
-
-    DEFINE ACTION    Cut(TEXT key)              'Remove user';
-
-    DEFINE CONST     Name 'gael'                'ben oui c est moi';
-    DEFINE CONST     agemin 18                  'min for been major';
-
-    INITIALIZE WORKFLOW
-        ON EVENT Event1 WHEN !IsEmpty(name = @Event.ExternalId) 
-            SWITCH State1
-
-    DEFINE STATE State1                         'state 1'
-        ON ENTER STATE 
-            WHEN !IsMajor(agemin = agemin)
-                EXECUTE Cut(key = @Event.ExternalId)
-                     -- Cut(key = @Event.ExternalId)
-                STORE   (Status = 'InProgress')           
-                     -- (Status = 'InProgress')           
-
-        ON EVENT Event2
-            SWITCH State2 
-
-        EXPIRE AFTER 2 DAY
-            SWITCH State3
-
-    ;
-
-    DEFINE STATE State2            'state 2'
-
-    ;
-
-    DEFINE STATE State3            'state 3'
-    
-    ;
-
-";
 
             var config = GetConfig(payload);
 
@@ -106,6 +61,100 @@ namespace UnitTestWorkflow
 
         }
 
+
+        [TestMethod]
+        public void TestFilter()
+        {
+
+            string txt;
+            var storage = new MemoryStorage();
+            var engine = CreateEngine(storage, payload);
+
+            // not integrated because no country specified
+            txt = Text
+                .Txt("Name", "Event1")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", Guid.NewGuid())
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5));
+            engine.EvaluateEvent(txt);
+            Assert.AreEqual(storage.GetAll<Workflow>().Count(), 0);
+
+            // not integrated because country specified is wrong
+            txt = Text
+                .Txt("Name", "Event1")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", Guid.NewGuid())
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "Germany");
+            engine.EvaluateEvent(txt);
+            Assert.AreEqual(storage.GetAll<Workflow>().Count(), 0);
+
+            // not integrated because event name is bypassed
+            txt = Text
+                .Txt("Name", "Event666")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", Guid.NewGuid())
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "Germany");
+            engine.EvaluateEvent(txt);
+            Assert.AreEqual(storage.GetAll<Workflow>().Count(), 0);
+
+            // must be integrated
+            txt = Text
+                .Txt("Name", "Event1")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", Guid.NewGuid())
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "France");
+            engine.EvaluateEvent(txt);
+            Assert.AreEqual(storage.GetAll<Workflow>().Count(), 1);
+
+        }
+
+        private WorkflowEngine CreateEngine(MemoryStorage storage, string configText)
+        {
+
+            var serializer = new JsonWorkflowSerializer();
+
+            WorkflowsConfig configs = new WorkflowsConfig()
+                .AddDocument(GetConfig(configText))
+                ;
+
+            var processor = new WorkflowProcessor(configs)
+            {
+                LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
+                OutputActions = () => CreateOutput(serializer, storage)
+            };
+
+            WorkflowEngine engine = new WorkflowEngine()
+            {
+                Serializer = serializer,
+                Processor = processor,
+            };
+
+            return engine;
+
+        }
+
+        public OutputAction CreateOutput(IWorkflowSerializer serializer, MemoryStorage storage)
+        {
+
+            return new SetPropertiesOutputAction(
+                        new PushBusActionOutputActionInMemory(storage,
+                            new PushModelOutputActionInMemory(storage)
+                        )
+                        {
+                            Serializer = serializer,
+                        }
+                    );
+
+        }
+
+
         private static WorkflowConfig GetConfig(string payload)
         {
 
@@ -128,12 +177,121 @@ namespace UnitTestWorkflow
             return ctx.IncomingEvent.ExtendedDatas["age"].ValueAs<int>() >= agemin;
         }
 
-        public static bool IsEmpty(RunContext ctx)
+        public static bool IsEmpty(RunContext ctx, string text)
         {
-            return string.IsNullOrEmpty((string)ctx.Arguments["name"]);
+            return string.IsNullOrEmpty(text);
         }
 
 
+
+
+        private string payload = @"
+    NAME wrk1 VERSION 2
+    CONCURENCY 1
+    DESCRIPTION                 'workflow de test'
+    MATCHING (Country = 'France')
+
+    DEFINE EVENT     Event1                     'incoming event 1';
+    DEFINE EVENT     Event2                     'incoming event 2';
+
+    DEFINE RULE      IsMajor (INTEGER agemin)   'this method 1';
+    DEFINE RULE      IsEmpty (TEXT text)        'this method 2'; 
+
+    DEFINE ACTION    Cut(TEXT key)              'Remove user';
+
+    DEFINE CONST     Name 'gael'                'ben oui c est moi';
+    DEFINE CONST     agemin 18                  'min for been major';
+
+    INITIALIZE WORKFLOW
+        ON EVENT Event1 WHEN NOT IsEmpty(text = @Event.ExternalId) 
+            SWITCH State1
+
+    DEFINE STATE State1                         'state 1'
+        ON ENTER STATE 
+            WHEN IsMajor(agemin = agemin)
+                EXECUTE Cut(key = @Event.ExternalId)
+                     -- Cut(key = @Event.ExternalId)
+                STORE   (Status = 'InProgress')           
+                     -- (Status = 'InProgress')           
+
+        ON EVENT Event2
+            SWITCH State2 
+
+        EXPIRE AFTER 2 DAY
+            SWITCH State3
+
+    ;
+
+    DEFINE STATE State2            'state 2'
+
+    ;
+
+    DEFINE STATE State3            'state 3'
+    
+    ;
+
+";
+
+    }
+
+    public class Text
+    {
+
+        public Text()
+        {
+            this._sb = new StringBuilder("{ ");
+            this._comma = string.Empty;
+        }
+
+        public static Text Txt(string key, string value)
+        {
+            return new Text().Add(key, value);
+        }
+
+        public Text Add(string key, Guid value)
+        {
+            return this.Add(key, value.ToString());
+        }
+
+        public Text Add(string key, DateTimeOffset value)
+        {
+            return this.Add(key, value.ToString());
+        }
+
+        public Text Add(string key, int value)
+        {
+            return this.Add(key, value.ToString());
+        }
+
+        public Text Add(string key, string value)
+        {
+
+            this._sb.Append(_comma);
+            this._sb.Append(@"""");
+            this._sb.Append(key);
+            this._sb.Append(@""": """);
+            this._sb.Append(value);
+            this._sb.Append(@"""");
+
+            this._comma = ", ";
+
+            return this;
+
+        }
+
+        public override string ToString()
+        {
+            _sb.Append(" }");
+            return _sb.ToString();
+        }
+
+        public static implicit operator string(Text txt)
+        {
+            return txt.ToString();
+        }
+
+        private StringBuilder _sb;
+        private string _comma;
     }
 
 }

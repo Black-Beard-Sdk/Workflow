@@ -139,7 +139,7 @@ namespace Bb.Workflows
                         break;
                     }
 
-                if (!string.IsNullOrEmpty(ctx.Event.ToState))
+                if (string.IsNullOrEmpty(ctx.Event.FromState))
                     ctx = null;
 
             }

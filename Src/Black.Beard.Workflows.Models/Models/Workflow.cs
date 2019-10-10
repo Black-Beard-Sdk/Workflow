@@ -11,6 +11,8 @@ namespace Bb.Workflows.Models
 
         public string ExternalId { get; set; }
 
+        public int Concurency { get; set; }
+
         public DateTimeOffset CreationDate { get; set; }
 
         public DateTimeOffset LastUpdateDate { get; set; }

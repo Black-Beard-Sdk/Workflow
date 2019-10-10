@@ -6,7 +6,20 @@ namespace Bb.Workflows.Models
     public class DynamicObject
     {
 
+        public static DynamicObject None = new DynamicObject();
+
         public Dictionary<string, DynamicObject> Items { get; set; } = new Dictionary<string, DynamicObject>();
+
+
+        public bool Check(string key, string value)
+        {
+            
+            if (Items.TryGetValue(key, out DynamicObject o) && o.Value == value)
+                return true;
+
+            return false;
+
+        }
 
         public bool ContainsKey(string key)
         {
@@ -15,7 +28,12 @@ namespace Bb.Workflows.Models
 
         public DynamicObject this[string key]
         {
-            get { return Items[key]; }
+            get 
+            {
+                if (Items.TryGetValue(key, out DynamicObject o))
+                    return o;
+                return None;
+            }
         }
 
         public string GetWithPath(Queue<string> properties)

@@ -65,7 +65,7 @@ namespace Bb.Workflows.Models.Configurations
                         this.DeclaredEvents.Add(e.Key, GetEventDefinition(e.Key));
         }
 
-        private static DeclaredEventConfig GetEventDefinition( string key)
+        private static DeclaredEventConfig GetEventDefinition(string key)
         {
 
             var label = string.Empty;
@@ -80,10 +80,10 @@ namespace Bb.Workflows.Models.Configurations
                     break;
             }
 
-            var result = new DeclaredEventConfig() 
+            var result = new DeclaredEventConfig()
             {
-                Name = key, 
-                Label = label 
+                Name = key,
+                Label = label
             };
 
             return result;
@@ -119,9 +119,7 @@ namespace Bb.Workflows.Models.Configurations
         {
 
             var item = Expression.Variable(typeof(IncomingEvent), "item");
-            var containsKey = typeof(DynamicObject).GetMethod("ContainsKey");
-            var _this = typeof(DynamicObject).GetMethod("get_Item");
-            var _value = typeof(DynamicObject).GetMethod("get_Value");
+            var check = typeof(DynamicObject).GetMethod("Check");
             var result = Expression.Variable(typeof(bool), "result");
             var property = typeof(IncomingEvent).GetProperty("ExtendedDatas");
 
@@ -133,24 +131,9 @@ namespace Bb.Workflows.Models.Configurations
 
             foreach (var filter in this.Filters)
             {
-
-                var p = Expression.Property(item, property);
-                var a1 = Expression.Not( Expression.Call(p, containsKey, Expression.Constant(filter.Key)));
-
-                var a2 = Expression.Call(p, _this, Expression.Constant(filter.Key));
-                var a3 = Expression.Call(a2, _value);
-
-                var a4 = Expression.NotEqual(a3, Expression.Constant(filter.Value));
-
-                var i = Expression.IfThen
-                (
-                      Expression.ExclusiveOr(a1, a4)
-                    , Expression.Block(Expression.Assign(result, Expression.Constant(false)), Expression.Goto(_end))
-
-                );
-
+                var a1 = Expression.Call(Expression.Property(item, property), check, Expression.Constant(filter.Key), Expression.Constant(filter.Value));
+                var i = Expression.IfThen(Expression.Not(a1), Expression.Block(Expression.Assign(result, Expression.Constant(false)), Expression.Goto(_end)));
                 blk.Add(i);
-
             }
 
             blk.Add(Expression.Label(_end));

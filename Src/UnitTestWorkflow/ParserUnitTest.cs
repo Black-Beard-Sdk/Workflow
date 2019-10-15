@@ -232,7 +232,7 @@ namespace UnitTestWorkflow
             };
             var metadatas = new MetadatRepository(typeof(MetadataModels))
             {
-                DefaultAction = MetadataModels.DefaultAction,
+                DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
 
             var serializer = new JsonWorkflowSerializer();

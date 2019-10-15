@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Bb.Workflows.Models.Messages;
+using System;
 using System.Collections.Generic;
 
 namespace Bb.Workflows.Models
 {
+
     public class PushedAction
     {
 
@@ -12,20 +14,27 @@ namespace Bb.Workflows.Models
 
         }
 
-        public Guid WorkflowId { get; set; }
 
-        public Guid EventId { get; set; }
 
         public Guid Uuid { get; set; }
 
-        public DateTimeOffset PushedAt { get; set; }
-
         public string Name { get; set; }
 
-        public List<(string, string)> Arguments { get; set; } = new List<(string, string)>();
+
+
+        public MessageRaw ExecuteMessage { get; set; } 
+        
+        public MessageRaw ResultMessage { get; set; } 
+        
+
+
+        public MessageRaw CancelMessage { get; set; } 
+        
+        public MessageRaw ResultCancelMessage { get; set; }
+        
+
 
     }
-
 
 
 }

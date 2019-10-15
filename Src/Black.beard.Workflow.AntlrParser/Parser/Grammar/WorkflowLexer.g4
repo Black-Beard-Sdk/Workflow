@@ -59,6 +59,7 @@ OR :        'OR';
 PARAMETER : 'PARAMETER';
 
 RULE :      'RULE';
+RECURSIVE : 'RECURSIVE';
 
 SWITCH :    'SWITCH';
 STATE :     'STATE';

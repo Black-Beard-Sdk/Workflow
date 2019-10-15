@@ -4,9 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Bb.Workflows.Converters;
 using Bb.Workflows.Models;
 using Bb.Workflows.Models.Configurations;
+using Bb.Workflows.Models.Messages;
 using Bb.Workflows.Outputs;
+using Bb.Workflows.Templates;
 
 namespace Bb.Workflows
 {
@@ -18,6 +21,12 @@ namespace Bb.Workflows
         {
             this._config = config;
         }
+
+        public TemplateRepository Templates { get; set; } = new TemplateRepository();
+
+        public MetadatRepository Metadatas { get; set; } = new MetadatRepository();
+
+        public IWorkflowSerializer Serializer { get; set; }
 
         public Func<OutputAction> OutputActions { get; set; }
 
@@ -31,11 +40,13 @@ namespace Bb.Workflows
                 throw new ArgumentNullException(nameof(OutputActions));
 
             List<RunContext> contexts = GetExistingContexts(@event).ToList();
-            contexts.AddRange(EvaluateNewWorkflow(@event));
-
+            var items = contexts.ToLookup(c => c.Workflow.WorkflowName);
+            contexts.AddRange(EvaluateNewWorkflow(@event, items));
 
             if (contexts.Any())
             {
+                TranslateActions(contexts);
+
                 var act = OutputActions();
 
                 foreach (var item in contexts)
@@ -46,8 +57,44 @@ namespace Bb.Workflows
                     act.Execute();
                     transaction.Commit();
                 }
+
             }
 
+        }
+
+        private void TranslateActions(List<RunContext> contexts)
+        {
+            foreach (var context in contexts)
+                foreach (ResultAction action in context.Actions)
+                {
+
+                    var body = Templates.Get(action.Name, action);
+                    var header = Metadatas.Get(action.Name);
+
+                    if (action.Delay > 0)
+                    {
+
+                        body = Templates.Get(Constants.PushReminder)
+                            .Add("Message", body);
+
+                        header = Metadatas.Get(Constants.PushReminder);
+
+                    }
+
+                    var t = new PushedAction()
+                    {
+                        Name = action.Name,
+                        Uuid = action.Uuid,
+                        ExecuteMessage = new MessageRaw()
+                        {
+                            Header = new MessageHeader(header) { },
+                            Body = (MessageBlock)body.Resolve(context),
+                        },
+                    };
+
+                    action.Event.Actions.Add(t);
+
+                }
         }
 
         public Func<string, List<Workflow>> LoadExistingWorkflows { get; set; }
@@ -71,7 +118,11 @@ namespace Bb.Workflows
                         continue;
                     }
 
-                    var ctx = new RunContext(item, @event);
+                    var ctx = new RunContext(item, @event)
+                    {
+                        Serializer = this.Serializer,
+                    };
+
                     ctx.Event.ToState = ctx.Event.FromState = ctx.PreviousEvent.ToState;
 
                     EvaluateEventInCurrentWorkflow(config, ctx);
@@ -85,7 +136,7 @@ namespace Bb.Workflows
 
         }
 
-        private List<RunContext> EvaluateNewWorkflow(IncomingEvent @event)
+        private List<RunContext> EvaluateNewWorkflow(IncomingEvent @event, ILookup<string, RunContext> existingWorkflows)
         {
 
             var configs = this._config.Get(@event).ToList();
@@ -101,9 +152,18 @@ namespace Bb.Workflows
                 if (ctx == null)
                     continue;
 
-                EvaluateEventInCurrentWorkflow(config, ctx);
+                RunContext last = null;
+                if (existingWorkflows != null)
+                    last = existingWorkflows[ctx.Workflow.WorkflowName].OrderBy(c => c.Workflow.Concurency).LastOrDefault();
 
-                results.Add(ctx);
+                if (last == null)
+                    results.Add(ExecuteTransitionOnNewWorkflow(config, ctx));
+
+                else if (last.Workflow.Concurency <= config.Concurrency)
+                {
+                    ctx.Workflow.Concurency = last.Workflow.Concurency + 1;
+                    results.Add(ExecuteTransitionOnNewWorkflow(config, ctx));
+                }
 
             }
 
@@ -111,7 +171,18 @@ namespace Bb.Workflows
 
         }
 
-        private static RunContext EvaluateInitialization(IncomingEvent @event, WorkflowConfig config)
+        private static RunContext ExecuteTransitionOnNewWorkflow(WorkflowConfig config, RunContext ctx)
+        {
+            var state = config.States[ctx.Workflow.CurrentState];
+            ParseAndCollectRules(state.IncomingRules, ctx);
+
+            if (ctx.Workflow.Recursive)
+                EvaluateEventInCurrentWorkflow(config, ctx);
+
+            return ctx;
+        }
+
+        private RunContext EvaluateInitialization(IncomingEvent @event, WorkflowConfig config)
         {
 
             RunContext ctx = null;
@@ -129,13 +200,19 @@ namespace Bb.Workflows
                     CreationDate = WorkflowClock.Now(),
                     LastUpdateDate = WorkflowClock.Now(),
                     ExtendedDatas = @event.ExtendedDatas.Clone(),
+                    Concurency = 1,
                 };
-                ctx = new RunContext(wrk, @event);
+                ctx = new RunContext(wrk, @event)
+                {
+                    Serializer = this.Serializer,
+                };
+
 
                 foreach (var sw in initializationOnEventConfig.Switchs)
                     if (sw.Rule == null || sw.Rule(ctx))
                     {
                         ctx.Event.ToState = ctx.Event.FromState = sw.TargetStateName;
+                        ctx.Workflow.Recursive = initializationOnEventConfig.Recursive;
                         break;
                     }
 
@@ -184,7 +261,10 @@ namespace Bb.Workflows
             foreach (var subRule in rules)
                 if (subRule.Rule == null || subRule.Rule(ctx))
                     foreach (var action in subRule.Actions)
-                        ctx.Event.Actions.Add(action.Map(ctx));
+                    {
+                        ResultAction m = action.Map(ctx);
+                        ctx.Actions.Add(m);
+                    }
 
         }
 

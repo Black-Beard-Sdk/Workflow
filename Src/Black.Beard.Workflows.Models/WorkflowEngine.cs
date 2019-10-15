@@ -66,7 +66,7 @@ namespace Bb.Workflows
             private void Unlock()
             {
 
-                var dateMax = WorkflowClock.Now().AddMinutes(2);
+                var dateMax = WorkflowClock.Now().AddMinutes(5);
                 
                 while (WorkflowClock.Now() < dateMax)
                 {

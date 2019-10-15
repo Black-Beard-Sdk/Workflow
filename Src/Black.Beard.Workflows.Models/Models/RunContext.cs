@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Bb.Workflows.Converters;
+using Bb.Workflows.Templates;
 
 namespace Bb.Workflows.Models
 {
@@ -8,13 +10,16 @@ namespace Bb.Workflows.Models
 
         public RunContext(Workflow workflow, IncomingEvent @event)
         {
-            this.Workflow = workflow;
+
             this.IncomingEvent = @event;
             this.Event = @event.Map();
 
-            this.PreviousEvent = this.Workflow.LastEvent;
-
-            this.Workflow.Events.Add(this.Event);
+            if (workflow != null)
+            {
+                this.Workflow = workflow;
+                this.PreviousEvent = this.Workflow.LastEvent;
+                this.Workflow.Events.Add(this.Event);
+            }
 
         }
 
@@ -26,6 +31,11 @@ namespace Bb.Workflows.Models
 
         public Event PreviousEvent { get; }
 
+        public DynObject ExtendedDatas { get; set; } = new DynObject();
+        
+        public IWorkflowSerializer Serializer { get; internal set; }
+
+        public IList<ResultAction> Actions { get; } = new List<ResultAction>();
     }
 
 }

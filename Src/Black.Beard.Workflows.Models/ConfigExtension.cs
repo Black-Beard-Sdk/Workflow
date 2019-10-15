@@ -53,7 +53,7 @@ namespace Bb.Workflows
 
         public static IncomingEvent AddExtendedDatas(this IncomingEvent self, string key, string value)
         {
-            self.ExtendedDatas.Items.Add(key, new DynamicObject() { Value = value });
+            self.ExtendedDatas.Items.Add(key, new DynObject().SetValue(value));
             return self;
         }
 
@@ -117,13 +117,13 @@ namespace Bb.Workflows
         public static ResultActionConfig AddArgument(this ResultActionConfig self, string key, string value)
         {
             if (value is string s && s.StartsWith("@"))
-                self.Arguments.Add(key, ExpressionHelper.GetAccessors(typeof(RunContext), s.Substring(1)));
+                self.Arguments.Add(key, ExpressionHelper.GetAccessors<RunContext>(s.Substring(1)));
             else
                 self.Arguments.Add(key, (c) => value);
             return self;
         }
 
-        public static ResultActionConfig AddArgument(this ResultActionConfig self, string key, Func<object, object> func)
+        public static ResultActionConfig AddArgument(this ResultActionConfig self, string key, Func<RunContext, object> func)
         {
             self.Arguments.Add(key, func);
             return self;

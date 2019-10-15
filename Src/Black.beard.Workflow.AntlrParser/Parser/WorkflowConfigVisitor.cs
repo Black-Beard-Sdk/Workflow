@@ -369,7 +369,7 @@ namespace Bb.Workflows.Parser
 
         /// <summary>
         /// initializing_item :
-        ///     ON EVENT key (WHEN rule_conditions)? SWITCH key
+        ///     ON EVENT key (WHEN rule_conditions)? RECURSIVE? SWITCH key
         ///     ;
         /// </summary>
         /// <param name="context"></param>
@@ -388,6 +388,7 @@ namespace Bb.Workflows.Parser
             InitializationOnEventConfig c1 = new InitializationOnEventConfig()
             {
                 EventName = eventName,
+                Recursive = context.RECURSIVE() != null,
             }
             .AddSwitch(_switch, func);
 
@@ -418,7 +419,7 @@ namespace Bb.Workflows.Parser
 
                 incomingEvent.Name = Constants.Events.ExpiredEventName;
                 int delay = (int)VisitDelay(context.delay());
-                whenRule = (ctx) => ctx.Workflow.CurrentState == ctx.IncomingEvent.ExtendedDatas["CurrentState"].Value;
+                whenRule = (ctx) => ctx.Workflow.CurrentState == ctx.IncomingEvent.ExtendedDatas["CurrentState"].GetValue(ctx).ToString();
 
                 AddExpirationActions(resultActions, delay);
 
@@ -454,7 +455,7 @@ namespace Bb.Workflows.Parser
         private static void AddExpirationActions(List<(string, ResultRuleConfig)> resultActions, int delay)
         {
 
-            string uuid = Guid.NewGuid().ToString();
+            string uuidKey = Guid.NewGuid().ToString();
 
             ResultActionConfig resultAction;
             ResultRuleConfig rule;
@@ -463,19 +464,13 @@ namespace Bb.Workflows.Parser
 
             resultAction = new ResultActionConfig()
             {
+                Name = Constants.Events.ExpiredEventName,
+                Label = "Expiration",
                 Delay = delay,
                 Kind = Constants.PushActionName
-            }
-            .AddArgument("Uuid", uuid)
-            .AddArgument("Name", Constants.Events.ExpiredEventName)
-            .AddArgument("EventDate", (ctx) => WorkflowClock.Now().AddMinutes(delay).ToString()) // #warn gérer le formatage correct
-            .AddArgument("CreationDate", (ctx) => WorkflowClock.Now().ToString())                // #warning gérer le formatage correct
-            .AddArgument("ExternalId", (ctx) => (ctx as RunContext).Workflow.ExternalId)
-            .AddArgument("CurrentState", (ctx) => (ctx as RunContext).Workflow.CurrentState);
-            rule = new ResultRuleConfig()
-            {
-
             };
+
+            rule = new ResultRuleConfig() { };
             rule.Actions.Add(resultAction);
             resultActions.Add(("in", rule));
 
@@ -485,16 +480,11 @@ namespace Bb.Workflows.Parser
 
             resultAction = new ResultActionConfig()
             {
-                Kind = Constants.PushActionName
-            }
-            .AddArgument("Uuid", Guid.NewGuid().ToString())
-            .AddArgument("Name", Constants.Events.CancelReminderAction)
-            .AddArgument("EventDate", (ctx) => WorkflowClock.Now())                              // #warning gérer le formatage correct
-            .AddArgument("CreationDate", (ctx) => WorkflowClock.Now().ToString())                // #warning gérer le formatage correct
-            .AddArgument("ExternalId", (ctx) => (ctx as RunContext).Workflow.ExternalId)
-            .AddArgument("CurrentState", (ctx) => (ctx as RunContext).Workflow.CurrentState)
-            .AddArgument("TaskUuid", uuid)
-            ;
+                Name = Constants.Events.CancelReminderAction,
+                Label = "Cancel Expiration",
+                Kind = Constants.PushActionName,
+            };
+
             rule = new ResultRuleConfig()
             {
                 Rule = (ctx) => ctx.IncomingEvent.Name != Constants.Events.ExpiredEventName,
@@ -1161,10 +1151,10 @@ namespace Bb.Workflows.Parser
 
         }
 
-        private Func<object, object> GetLambda(string key, string value, Type type)
+        private Func<RunContext, object> GetLambda(string key, string value, Type type)
         {
 
-            Func<object, object> func = null;
+            Func<RunContext, object> func = null;
 
             if (value.StartsWith("'") && value.EndsWith("'"))
             {
@@ -1173,7 +1163,7 @@ namespace Bb.Workflows.Parser
                 func = ExpressionHelper.GetConstant<object>(v);
             }
             else if (value.StartsWith("'@"))
-                func = ExpressionHelper.GetAccessors(typeof(RunContext), value.Substring(1));
+                func = ExpressionHelper.GetAccessors<RunContext>(value.Substring(1));
 
             else
             {
@@ -1193,40 +1183,6 @@ namespace Bb.Workflows.Parser
             return func;
 
         }
-
-        //private Expression GetLambda2(string key, string value, Type type)
-        //{
-
-        //    Expression func = null;
-
-        //    if (value.StartsWith("'") && value.EndsWith("'"))
-        //    {
-        //        value = value.Trim('\'');
-        //        var v = Convert.ChangeType(value, type);
-        //        func = Expression.Constant(v);
-        //    }
-        //    else if (value.StartsWith("'@"))
-
-        //        func = ExpressionHelper.GetAccessors(typeof(RunContext), value.Substring(1));
-
-        //    else
-        //    {
-
-        //        if (this._constants.TryGetValue(value, out ConstantExpressionModel m))
-        //        {
-        //            var v = Convert.ChangeType(m.Value, type);
-        //            func = Expression.Constant(v);
-        //        }
-        //        else
-        //        {
-        //            var v = Convert.ChangeType(value, type);
-        //            func = Expression.Constant(v);
-        //        }
-        //    }
-
-        //    return func;
-
-        //}
 
         private RuleDefinitionModel ResolveRule(string key)
         {
@@ -1256,41 +1212,5 @@ namespace Bb.Workflows.Parser
         private readonly CultureInfo _currentCulture;
 
     }
-
-    internal class MethodReference
-    {
-
-        public string Name { get; set; }
-
-        public string Comment { get; set; }
-
-        public Dictionary<string, Type> Arguments { get; } = new Dictionary<string, Type>();
-
-    }
-
-    /*
-     
-            Func<object, object> func = null;
-
-            if (value.StartsWith("'") && value.EndsWith("'"))
-            {
-                value = value.Trim('\'');
-                func = ExpressionHelper.GetConstant(value);
-            }
-            else if (value.StartsWith("'@"))
-                func = ExpressionHelper.GetAccessors(typeof(RunContext), value.Substring(2));
-            
-            else
-            {
-
-                if (this._constants.TryGetValue(value, out ConstantExpressionModel m))
-                    func = ExpressionHelper.GetConstant(m.Value);
-
-                else
-                    func = ExpressionHelper.GetConstant(value);
-
-            }
-
-     */
 
 }

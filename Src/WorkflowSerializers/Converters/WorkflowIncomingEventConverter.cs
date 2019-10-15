@@ -41,7 +41,7 @@ namespace Bb.Workflows.Converters
 
                     case "EventDate":
                         v = (JValue)item.Value;
-                        result.CreationDate = DateTimeOffset.Parse(v.Value.ToString());
+                        result.EventDate = DateTimeOffset.Parse(v.Value.ToString());
                         break;
 
                     case "Name":
@@ -51,11 +51,11 @@ namespace Bb.Workflows.Converters
 
                     default:
 
-                        var o = new DynamicObject() { };
+                        var o = new DynObject() { };
                         result.ExtendedDatas.Items.Add(item.Key, o);
 
                         if (item.Value is JValue v1)
-                            o.Value = v1.Value.ToString();
+                            o.SetValue(v1.Value.ToString());
 
                         else if (item.Value is JObject v2)
                             Deserialize(v2, o);
@@ -75,7 +75,7 @@ namespace Bb.Workflows.Converters
 
         }
 
-        private void Deserialize(JArray v, DynamicObject o)
+        private void Deserialize(JArray v, DynObject o)
         {
 
             o.IsArray = true;
@@ -83,11 +83,11 @@ namespace Bb.Workflows.Converters
             foreach (var item in v)
             {
 
-                var j = new DynamicObject() { };
+                var j = new DynObject() { };
                 o.Items.Add(o.Items.Count.ToString(), j);
 
                 if (item is JValue v1)
-                    j.Value = v1.Value.ToString();
+                    j.SetValue(v1.Value.ToString());
 
                 else if (item is JObject v2)
                     Deserialize(v2, j);
@@ -98,17 +98,17 @@ namespace Bb.Workflows.Converters
             }
         }
 
-        private void Deserialize(JObject v, DynamicObject o)
+        private void Deserialize(JObject v, DynObject o)
         {
 
             foreach (var item in v)
             {
 
-                var j = new DynamicObject() { };
+                var j = new DynObject() { };
                 o.Items.Add(item.Key, j);
 
                 if (item.Value is JValue v1)
-                    j.Value = v1.Value.ToString();
+                    j.SetValue(v1.Value.ToString());
 
                 else if (item.Value is JObject v2)
                     Deserialize(v2, o);
@@ -139,46 +139,15 @@ namespace Bb.Workflows.Converters
             };
 
             foreach (var item in value.ExtendedDatas.Items)
-                o.Add(new JProperty(item.Key, Serialize(item.Value)));
-
+            {
+                var r = item.Value.Serialize();
+                if (r != null)
+                    o.Add(new JProperty(item.Key, r));
+            }
 
             o.WriteTo(writer);
 
-
         }
-
-        private JToken Serialize(DynamicObject value)
-        {
-
-            JToken result;
-
-            if (!string.IsNullOrEmpty(value.Value))
-                result = new JValue(value.Value);
-
-            else
-            {
-
-                if (value.IsArray)
-                {
-                    var ar = new JArray();
-                    foreach (var item in value.Items)
-                        ar.Add(Serialize(item.Value));
-                    result = ar;
-                }
-                else
-                {
-                    var oj = new JObject();
-                    foreach (var item in value.Items)
-                        oj.Add(new JProperty(item.Key, Serialize(item.Value)));
-                    result = oj;
-                }
-
-            }
-
-            return result;
-
-        }
-
 
     }
 

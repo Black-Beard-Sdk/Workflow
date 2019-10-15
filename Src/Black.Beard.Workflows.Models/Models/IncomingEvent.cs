@@ -24,7 +24,7 @@ namespace Bb.Workflows.Models
 
         public DateTimeOffset EventDate { get; set; }
 
-        public DynamicObject ExtendedDatas { get; set; } = new DynamicObject();
+        public DynObject ExtendedDatas { get; set; } = new DynObject();
 
         internal Event Map()
         {

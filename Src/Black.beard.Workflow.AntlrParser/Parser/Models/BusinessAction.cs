@@ -128,19 +128,19 @@ namespace Bb.Workflows.Parser.Models
             while (path.Count > 0)
             {
                 var memberName = path.Dequeue();
-                if (lastInstanceType == typeof(DynamicObject))
+                if (lastInstanceType == typeof(DynObject))
                 {
 
                     var _p = GetPath(path, memberName);
 
-                    if (!varDic.TryGetValue(typeof(DynamicObject), out ParameterExpression p))
-                        varDic.Add(typeof(DynamicObject), (p = Expression.Parameter(typeof(DynamicObject), "_" + type.Name.ToLower())));
+                    if (!varDic.TryGetValue(typeof(DynObject), out ParameterExpression p))
+                        varDic.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + type.Name.ToLower())));
 
                     if (!varDic.TryGetValue(typeof(string), out parameterResult))
                         varDic.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
 
                     var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p));
+                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
                     blk.Add(j);
                 }
                 else
@@ -156,16 +156,16 @@ namespace Bb.Workflows.Parser.Models
                         var _last = p;
                         var _p = GetPath(path, memberName);
 
-                        if (!varDic.TryGetValue(typeof(DynamicObject), out p))
-                            varDic.Add(typeof(DynamicObject), (p = Expression.Parameter(typeof(DynamicObject), "_" + typeof(DynamicObject).Name.ToLower())));
+                        if (!varDic.TryGetValue(typeof(DynObject), out p))
+                            varDic.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + typeof(DynObject).Name.ToLower())));
 
                         blk.Add(Expression.Assign(p, Expression.Property(_last, "ExtendedDatas")));
 
                         if (!varDic.TryGetValue(typeof(string), out parameterResult))
                             varDic.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
 
-                        var method = typeof(DynamicObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p));
+                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
+                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
                         blk.Add(j);
 
                     }

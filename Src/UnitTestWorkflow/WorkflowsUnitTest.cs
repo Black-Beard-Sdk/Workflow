@@ -6,6 +6,7 @@ using Bb.Workflows.Converters;
 using Bb.Workflows.Models;
 using Bb.Workflows.Models.Configurations;
 using Bb.Workflows.Outputs;
+using Bb.Workflows.Templates;
 
 namespace UnitTestWorkflow
 {
@@ -24,7 +25,7 @@ namespace UnitTestWorkflow
             config.AddDocument(
                 new WorkflowConfig() { Name = "wrk1", Label = "wrk1 config", Version = 1, }
 
-                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", }.AddSwitch("state1"))
+                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", Recursive = true }.AddSwitch("State1"))
 
                 .AddState(new StateConfig() { Name = "State1", Label = "State1", }
                     .AddEvent(new IncomingEventConfig() { Name = "evnt1", }
@@ -36,9 +37,20 @@ namespace UnitTestWorkflow
             );
 
 
+            var template = new TemplateRepository(typeof(TemplateModels))
+            {
+                DefaultAction = TemplateModels.DefaultAction,
+            };
+            var metadatas = new MetadatRepository(typeof(MetadataModels))
+            {
+                DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
+            };
+
             var processor = new WorkflowProcessor(config)
             {
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage)
+                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                Templates = template,
+                Metadatas = metadatas,
             };
 
 
@@ -68,9 +80,7 @@ namespace UnitTestWorkflow
 
             config.AddDocument(
                 new WorkflowConfig() { Name = "wrk1", Label = "wrk1 config", Version = 1, }
-
-                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", }.AddSwitch("state1"))
-
+                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", }.AddSwitch("State1"))
                 .AddState(new StateConfig() { Name = "State1", Label = "State1", }
                     .AddEvent(new IncomingEventConfig() { Name = "evnt2" }
                         .AddTransition(new TransitionConfig() { TargetStateName = "State2", WhenRule = (c) => c.IncomingEvent.Name == "evnt2" })
@@ -80,11 +90,21 @@ namespace UnitTestWorkflow
                 )
             );
 
+            var template = new TemplateRepository(typeof(TemplateModels))
+            {
+                DefaultAction = TemplateModels.DefaultAction,
+            };
+            var metadatas = new MetadatRepository(typeof(MetadataModels))
+            {
+                DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
+            };
 
             var processor = new WorkflowProcessor(config)
             {
                 LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage)
+                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                Templates = template,
+                Metadatas = metadatas,
             };
 
 
@@ -98,7 +118,7 @@ namespace UnitTestWorkflow
             };
             processor.EvaluateEvent(ev);
             var wrk = storage.GetAll<Workflow>().FirstOrDefault(c => c.ExternalId == ev.ExternalId);
-            Assert.AreEqual(wrk, null);
+            Assert.AreEqual(wrk.CurrentState, "State1");
 
 
             ev = new IncomingEvent()
@@ -111,7 +131,7 @@ namespace UnitTestWorkflow
             };
             processor.EvaluateEvent(ev);
             wrk = storage.GetAll<Workflow>().FirstOrDefault(c => c.ExternalId == ev.ExternalId);
-            Assert.AreEqual(wrk.WorkflowName, "wrk1");
+            Assert.AreEqual(wrk, null);
 
 
         }
@@ -126,7 +146,7 @@ namespace UnitTestWorkflow
             config.AddDocument(
                 new WorkflowConfig() { Name = "wrk1", Label = "wrk1 config", Version = 1, }
 
-                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", }.AddSwitch("state1"))
+                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", }.AddSwitch("State1"))
 
                 .AddState(new StateConfig() { Name = "State1", Label = "State1", }
                     .AddIncomingActions(null, new ResultActionConfig() { Name = "act_on_state_in_1" })
@@ -147,11 +167,21 @@ namespace UnitTestWorkflow
                 )
             );
 
+            var template = new TemplateRepository(typeof(TemplateModels))
+            {
+                DefaultAction = TemplateModels.DefaultAction,
+            };
+            var metadatas = new MetadatRepository(typeof(MetadataModels))
+            {
+                DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
+            };
 
             var processor = new WorkflowProcessor(config)
             {
                 LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                Templates = template,
+                Metadatas = metadatas,
             };
 
             var ev = new IncomingEvent()
@@ -171,7 +201,6 @@ namespace UnitTestWorkflow
             act.First(c => c.Name == "act_on_state_out");
             act.First(c => c.Name == "act_on_event");
             act.First(c => c.Name == "act_on_transition");
-            Assert.AreEqual( act.First(c => c.Name == "act_on_transition_2").Arguments["name"], "evnt1");
 
         }
 
@@ -186,7 +215,7 @@ namespace UnitTestWorkflow
             config.AddDocument(
                 new WorkflowConfig() { Name = "wrk1", Label = "wrk1 config", Version = 1, }
 
-                .AddInitializer(new InitializationOnEventConfig() {  EventName = "evnt1", }.AddSwitch("state1"))
+                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", Recursive = true }.AddSwitch("State1"))
 
                 .AddState(new StateConfig() { Name = "State1", Label = "State1", }
                     .AddEvent(new IncomingEventConfig() { Name = "evnt1" }
@@ -207,11 +236,21 @@ namespace UnitTestWorkflow
                 )
             );
 
+            var template = new TemplateRepository(typeof(TemplateModels))
+            {
+                DefaultAction = TemplateModels.DefaultAction,
+            };
+            var metadatas = new MetadatRepository(typeof(MetadataModels))
+            {
+                DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value)
+            };
 
             var processor = new WorkflowProcessor(config)
             {
                 LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage)
+                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                Templates = template,
+                Metadatas = metadatas,
             };
 
 
@@ -260,7 +299,7 @@ namespace UnitTestWorkflow
         {
             var _value = Guid.NewGuid().ToString();
             RunContext ctx = CreateContextForEvaluateArgument();
-            var u = ExpressionHelper.GetAccessors(typeof(RunContext), "Event.ExternalId");
+            var u = ExpressionHelper.GetAccessors<RunContext>("Event.ExternalId");
             var v = u(ctx);
             Assert.AreEqual(v, ctx.Event.ExternalId);
         }
@@ -270,8 +309,8 @@ namespace UnitTestWorkflow
         {
             var _value = Guid.NewGuid().ToString();
             RunContext ctx = CreateContextForEvaluateArgument();
-            ctx.Event.ExtendedDatas.Items.Add("SiteIdentifier", new DynamicObject() { Value = "112233" });
-            var u = ExpressionHelper.GetAccessors(typeof(RunContext), "Event.SiteIdentifier");
+            ctx.Event.ExtendedDatas.Items.Add("SiteIdentifier", new DynObject().SetValue("112233"));
+            var u = ExpressionHelper.GetAccessors<RunContext>("Event.SiteIdentifier");
             var v = u(ctx);
             Assert.AreEqual(v, "112233");
         }
@@ -306,14 +345,11 @@ namespace UnitTestWorkflow
         public OutputAction CreateOutput(IWorkflowSerializer serializer, MemoryStorage storage)
         {
 
-            return  new SetPropertiesOutputAction(
+            return new SetPropertiesOutputAction(
                         new PushBusActionOutputActionInMemory(storage,
                             new PushModelOutputActionInMemory(storage)
                         )
-                        {
-                            Serializer = serializer,
-                        }
-                    );
+                   );
 
         }
 

@@ -23,11 +23,7 @@ namespace Bb.Workflows.Outputs
             Trace.WriteLine($"Preparing {this.GetType().Name} on {ctx.Workflow.Uuid} impacted by {ctx.IncomingEvent.Uuid} ({ctx.IncomingEvent.Name})");
             Prepare_Impl(ctx);
             if (child != null)
-            {
-                if (child.Serializer == null)
-                    child.Serializer = Serializer;
                 child.Prepare(ctx);
-            }
         }
 
 
@@ -59,7 +55,6 @@ namespace Bb.Workflows.Outputs
 
         protected List<object> Items { get; }
 
-        public IWorkflowSerializer Serializer { get; set; }
 
         private OutputAction child;
 

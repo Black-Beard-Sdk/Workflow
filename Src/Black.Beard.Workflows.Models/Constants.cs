@@ -10,6 +10,7 @@ namespace Bb.Workflows
 
         public const string SetValueActionName = "$_update";
         public const string PushActionName = "$_push";
+        public const string PushReminder = "$_reminder";
 
 
         // 
@@ -18,7 +19,7 @@ namespace Bb.Workflows
         public static class Events
         {
             public const string ExpiredEventName = "__expired";
-            public const string CancelReminderAction = "__canceReminderAction";
+            public const string CancelReminderAction = "__cancelReminderAction";
         }
 
 

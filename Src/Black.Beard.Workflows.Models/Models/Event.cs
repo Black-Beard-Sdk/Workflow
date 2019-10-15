@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Bb.Workflows.Models
 {
@@ -17,13 +18,25 @@ namespace Bb.Workflows.Models
 
         public DateTimeOffset EventDate { get; set; }
 
-        public DynamicObject ExtendedDatas { get; set; } = new DynamicObject();
+        public DynObject ExtendedDatas { get; set; } = new DynObject();
 
         public string FromState { get; set; }
 
         public string ToState { get; set; }
 
-        public IList<ResultAction> Actions { get; set; } = new List<ResultAction>();
+        public IList<PushedAction> Actions { get; set; } = new List<PushedAction>();
+
+        public bool GetAction(Guid uuid, out PushedAction a)
+        {
+
+            if (this._a == null)
+                this._a = Actions.ToDictionary(c => c.Uuid);
+
+            return this._a.TryGetValue(uuid, out a);
+
+        }
+
+        private Dictionary<Guid, PushedAction> _a;
 
     }
 

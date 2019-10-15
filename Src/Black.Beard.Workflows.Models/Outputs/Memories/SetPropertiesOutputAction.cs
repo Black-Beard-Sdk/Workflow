@@ -19,20 +19,21 @@ namespace Bb.Workflows.Outputs
         protected override void Prepare_Impl(RunContext ctx)
         {
 
-            var act = ctx.Event.Actions.Where(c => c.Kind == Constants.SetValueActionName).ToList();
+            var act = ctx.Actions.Where(c => c.Kind == Constants.SetValueActionName).ToList();
 
             foreach (var item in act)
             {
 
-                var key = item.Arguments["key"];
-                var value = item.Arguments["value"];
+                var key = item.Arguments["key"].GetValue(ctx).ToString();
+                var value = item.Arguments["value"].GetValue(ctx).ToString();
 
-                if (!ctx.Workflow.ExtendedDatas.Items.ContainsKey(key))
-                    ctx.Workflow.ExtendedDatas.Items.Add(key, new DynamicObject() { Value = value });
+                if (!ctx.Workflow.ExtendedDatas.ContainsKey(key))
+                    ctx.Workflow.ExtendedDatas.Items.Add(key, new DynObject().SetValue(value));
                 else
-                    ctx.Workflow.ExtendedDatas.Items[key].Value = value;              
+                    ctx.Workflow.ExtendedDatas.Items[key].SetValue(value);              
 
             }
+
         }
 
         protected override void Execute_Impl()

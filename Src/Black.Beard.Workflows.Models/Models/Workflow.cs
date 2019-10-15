@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Bb.Workflows.Models
 {
 
     public class Workflow
     {
+
 
         public Guid Uuid { get; set; }
 
@@ -25,10 +27,23 @@ namespace Bb.Workflows.Models
 
         public string CurrentState { get => Events.Count > 0 ? Events[Events.Count - 1].ToState : string.Empty; }
 
-        public DynamicObject ExtendedDatas { get; set; } = new DynamicObject();
+        public DynObject ExtendedDatas { get; set; } = new DynObject();
 
         public IList<Event> Events { get; set; } = new List<Event>();
 
+        public bool Recursive { get; internal set; }
+
+        public bool GetEvent(Guid uuid, out Event e)
+        {
+
+            if (this._e == null)
+                this._e = Events.ToDictionary(c => c.Uuid);
+
+            return this._e.TryGetValue(uuid, out e);
+
+        }
+
+        private Dictionary<Guid, Event> _e;
 
     }
 

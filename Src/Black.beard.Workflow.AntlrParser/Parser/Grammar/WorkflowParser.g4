@@ -82,7 +82,7 @@ initializing :
     ;
 
 initializing_item :
-    ON EVENT key (WHEN rule_conditions)? SWITCH key
+    ON EVENT key (WHEN rule_conditions)? RECURSIVE? SWITCH key
     ;
 
 on_event_statement :

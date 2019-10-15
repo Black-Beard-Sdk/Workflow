@@ -1,7 +1,7 @@
 ﻿using Bb.Workflows.Models;
 using Bb.Workflows.Outputs;
 
-namespace UnitTestWorkflow
+namespace Bb.Workflows.Outputs.Mom
 {
 
     public class PushLogOutputAction : OutputAction

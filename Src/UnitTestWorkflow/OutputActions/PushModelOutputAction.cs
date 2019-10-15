@@ -13,7 +13,7 @@ namespace UnitTestWorkflow
 
         protected override void Prepare_Impl(RunContext ctx)
         {
-            var model = this.Serializer.Serialize(ctx.Workflow);
+            var model = ctx.Serializer.Serialize(ctx.Workflow);
             base.Items.Add(model);
         }
 

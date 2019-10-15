@@ -8,6 +8,7 @@ namespace Bb.Workflows.Converters
     public class JsonWorkflowSerializer : IWorkflowSerializer
     {
 
+
         public JsonWorkflowSerializer()
         {
 
@@ -21,13 +22,12 @@ namespace Bb.Workflows.Converters
 
         }
 
+
         public string Serialize(Workflow workflow)
         {
             var json = JsonConvert.SerializeObject(workflow, Formatting.Indented, _settings);
             return json;
         }
-
-
 
 
         public string Serialize(PushedAction pushedAction)

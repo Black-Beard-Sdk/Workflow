@@ -13,6 +13,29 @@ namespace UnitTestWorkflow
     {
 
         [TestMethod]
+        public void SerializeOutputAction()
+        {
+
+            string uuid = Guid.NewGuid().ToString();
+
+            DynObject.Create("Name", Constants.PushReminder)
+            .Add("delay", WorkflowClock.Now().AddMinutes(10).ToString())
+            .Add("canal", (ctx) => "IncomingEvent") // --read configuration where canal can be found
+            .Add("Message",
+                 DynObject.Create("Uuid", uuid)
+                     .Add("Name", Constants.Events.ExpiredEventName)
+                     .Add("EventDate", (ctx) => WorkflowClock.Now().AddMinutes(10).ToString())
+                     .Add("CreationDate", (ctx) => WorkflowClock.Now().ToString())
+                     .Add("ExternalId", (ctx) => ctx.Workflow.ExternalId)
+                     .Add("CurrentState", (ctx) => ctx.Workflow.CurrentState))
+
+            ;
+
+
+
+        }
+
+        [TestMethod]
         public void UnserializeEventIncoming()
         {
 
@@ -31,7 +54,7 @@ namespace UnitTestWorkflow
             IWorkflowSerializer serializer = new JsonWorkflowSerializer();
             var msg = serializer.Unserialize(payload);
 
-           var payload2 = serializer.Serialize(msg);
+            var payload2 = serializer.Serialize(msg);
 
             msg = serializer.Unserialize(payload2);
             var payload3 = serializer.Serialize(msg);

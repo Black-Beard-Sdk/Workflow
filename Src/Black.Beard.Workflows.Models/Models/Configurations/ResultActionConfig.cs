@@ -7,17 +7,6 @@ using System.Reflection;
 namespace Bb.Workflows.Models.Configurations
 {
 
-
-    public class ResultRuleConfig
-    {
-
-        public Func<RunContext, bool> Rule { get; set; }
-
-        public List<ResultActionConfig> Actions { get; set; } = new List<ResultActionConfig>();
-
-    }
-
-
     public class ResultActionConfig
     {
 
@@ -27,7 +16,7 @@ namespace Bb.Workflows.Models.Configurations
 
         public int Delay { get; set; }
 
-        public Dictionary<string, Func<object, object>> Arguments { get; set; } = new Dictionary<string, Func<object, object>>();
+        public DynObject Arguments { get; set; } = new DynObject();
 
         public string Kind { get; set; }
 
@@ -41,11 +30,12 @@ namespace Bb.Workflows.Models.Configurations
                 Label = this.Name,
                 Delay = this.Delay,
                 Kind = Kind,
-                EventDate = WorkflowClock.Now()
+                EventDate = WorkflowClock.Now(),
+                Event = ctx.Event,
             };
 
-            foreach (var item in this.Arguments)
-                result.Arguments.Add(item.Key, Convert.ToString(item.Value(ctx)));
+            foreach (var item in this.Arguments.Items)
+                result.Arguments.Add(item.Key, item.Value);
 
             return result;
 

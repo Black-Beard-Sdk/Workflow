@@ -1,6 +1,6 @@
 ﻿using Bb.Workflows.Outputs;
 
-namespace UnitTestWorkflow
+namespace Bb.Workflows.Outputs.Mom
 {
 
 

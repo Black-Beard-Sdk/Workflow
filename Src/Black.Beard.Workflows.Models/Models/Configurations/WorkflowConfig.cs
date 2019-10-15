@@ -34,7 +34,9 @@ namespace Bb.Workflows.Models.Configurations
             if (_evaluateFilter == null)
                 BuildWorkflow();
 
-            return _evaluateFilter(@event);
+            RunContext ctx = new RunContext(null, @event);
+
+            return _evaluateFilter(ctx);
 
         }
 
@@ -115,13 +117,14 @@ namespace Bb.Workflows.Models.Configurations
 
         }
 
-        private Func<IncomingEvent, bool> BuildIncomingAccessor()
+        private Func<RunContext, bool> BuildIncomingAccessor()
         {
 
-            var item = Expression.Variable(typeof(IncomingEvent), "item");
-            var check = typeof(DynamicObject).GetMethod("Check");
+            var item = Expression.Variable(typeof(RunContext), "item");
+            var check = typeof(DynObject).GetMethod("Check");
             var result = Expression.Variable(typeof(bool), "result");
-            var property = typeof(IncomingEvent).GetProperty("ExtendedDatas");
+            var property1 = typeof(RunContext).GetProperty("IncomingEvent");
+            var property2 = typeof(IncomingEvent).GetProperty("ExtendedDatas");
 
             var _end = Expression.Label("end");
 
@@ -131,7 +134,8 @@ namespace Bb.Workflows.Models.Configurations
 
             foreach (var filter in this.Filters)
             {
-                var a1 = Expression.Call(Expression.Property(item, property), check, Expression.Constant(filter.Key), Expression.Constant(filter.Value));
+                var _property = Expression.Property( Expression.Property(item, property1), property2);
+                var a1 = Expression.Call(_property, check, Expression.Constant(filter.Key), Expression.Constant(filter.Value), item);
                 var i = Expression.IfThen(Expression.Not(a1), Expression.Block(Expression.Assign(result, Expression.Constant(false)), Expression.Goto(_end)));
                 blk.Add(i);
             }
@@ -139,13 +143,13 @@ namespace Bb.Workflows.Models.Configurations
             blk.Add(Expression.Label(_end));
             blk.Add(result);
 
-            var ldb = Expression.Lambda<Func<IncomingEvent, bool>>(Expression.Block(new ParameterExpression[] { result }, blk.ToArray()), item);
+            var ldb = Expression.Lambda<Func<RunContext, bool>>(Expression.Block(new ParameterExpression[] { result }, blk.ToArray()), item);
 
             return ldb.Compile();
 
         }
 
-        private Func<IncomingEvent, bool> _evaluateFilter;
+        private Func<RunContext, bool> _evaluateFilter;
         private StateConfig _initState;
         private volatile object _lock = new object();
 

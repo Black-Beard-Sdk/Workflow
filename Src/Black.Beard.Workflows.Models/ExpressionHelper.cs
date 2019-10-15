@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Bb.Workflows.Models;
+using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -24,48 +24,47 @@ namespace Bb.Workflows
             return lbd.Compile();
         }
 
-        public static Func<object, object> GetAccessors(Type type, string fullPath)
+        public static Func<T, object> GetAccessors<T>(string fullPath)
         {
+
+            Type type = typeof(T);
 
             var ctor = typeof(NullReferenceException).GetConstructor(new Type[] { typeof(string) });
 
-            Dictionary<Type, ParameterExpression> var = new Dictionary<Type, ParameterExpression>();
-            List<Expression> blk = new List<Expression>();
-            ParameterExpression arg0 = Expression.Parameter(typeof(object), "arg0");
-            ParameterExpression currentInstance;
-            Type lastInstanceType = type;
-            currentInstance = Expression.Parameter(type, "_" + type.Name.ToLower());
-            var.Add(currentInstance.Type, currentInstance);
 
-            blk.Add(Expression.Assign(currentInstance, Expression.Convert(arg0, type)));
+            Dictionary<Type, ParameterExpression> vars = new Dictionary<Type, ParameterExpression>();
+            List<Expression> blk = new List<Expression>();
+            ParameterExpression arg0 = Expression.Parameter(type, "arg0");
+            Type lastInstanceType = type;
+            vars.Add(type, arg0);
 
             var path = new Queue<string>(fullPath.Split('.'));
             PropertyInfo property;
-            ParameterExpression parameterResult = null;
+            ParameterExpression parameterResult = arg0;
 
             while (path.Count > 0)
             {
                 var memberName = path.Dequeue();
-                if (lastInstanceType == typeof(DynamicObject))
+                if (lastInstanceType == typeof(DynObject))
                 {
 
                     var _p = GetPath(path, memberName);
 
-                    if (!var.TryGetValue(typeof(DynamicObject), out ParameterExpression p))
-                        var.Add(typeof(DynamicObject), (p = Expression.Parameter(typeof(DynamicObject), "_" + type.Name.ToLower())));
+                    if (!vars.TryGetValue(typeof(DynObject), out ParameterExpression p))
+                        vars.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + type.Name.ToLower())));
 
-                    if (!var.TryGetValue(typeof(string), out parameterResult))
-                        var.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
+                    if (!vars.TryGetValue(typeof(string), out parameterResult))
+                        vars.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
 
                     var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p));
+                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
                     blk.Add(j);
                 }
                 else
                 {
 
-                    if (!var.TryGetValue(lastInstanceType, out ParameterExpression p))
-                        var.Add(lastInstanceType, (p = Expression.Parameter(lastInstanceType, "_" + lastInstanceType.Name.ToLower())));
+                    if (!vars.TryGetValue(lastInstanceType, out ParameterExpression p))
+                        vars.Add(lastInstanceType, (p = Expression.Parameter(lastInstanceType, "_" + lastInstanceType.Name.ToLower())));
 
                     property = lastInstanceType.GetProperty(memberName);
                     if (property == null)
@@ -74,24 +73,24 @@ namespace Bb.Workflows
                         var _last = p;
                         var _p = GetPath(path, memberName);
 
-                        if (!var.TryGetValue(typeof(DynamicObject), out p))
-                            var.Add(typeof(DynamicObject), (p = Expression.Parameter(typeof(DynamicObject), "_" + typeof(DynamicObject).Name.ToLower())));
+                        if (!vars.TryGetValue(typeof(DynObject), out p))
+                            vars.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + typeof(DynObject).Name.ToLower())));
 
                         blk.Add(Expression.Assign(p, Expression.Property(_last, "ExtendedDatas")));
 
-                        if (!var.TryGetValue(typeof(string), out parameterResult))
-                            var.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
+                        if (!vars.TryGetValue(typeof(string), out parameterResult))
+                            vars.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
 
-                        var method = typeof(DynamicObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p));
+                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
+                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
                         blk.Add(j);
 
                     }
                     else
                     {
 
-                        if (!var.TryGetValue(property.PropertyType, out parameterResult))
-                            var.Add(property.PropertyType, (parameterResult = Expression.Parameter(property.PropertyType, "_" + property.PropertyType.Name.ToLower())));
+                        if (!vars.TryGetValue(property.PropertyType, out parameterResult))
+                            vars.Add(property.PropertyType, (parameterResult = Expression.Parameter(property.PropertyType, "_" + property.PropertyType.Name.ToLower())));
 
                         var e = Expression.Assign(parameterResult, Expression.Property(p, property));
                         blk.Add(e);
@@ -109,8 +108,8 @@ namespace Bb.Workflows
 
             blk.Add(Expression.Convert(parameterResult, typeof(object)));
 
-            var b = Expression.Block(typeof(object), var.Values, blk.ToArray());
-            var lbd = Expression.Lambda<Func<object, object>>(b, arg0);
+            var b = Expression.Block(typeof(object), vars.Values.Skip(1), blk.ToArray());
+            var lbd = Expression.Lambda<Func<T, object>>(b, arg0);
 
             return lbd.Compile();
 

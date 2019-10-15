@@ -8,6 +8,7 @@ using Bb.Workflows.Parser;
 using Bb.Workflows.Models.Configurations;
 using Bb.Workflows.Outputs;
 using System.Text;
+using Bb.Workflows.Templates;
 
 namespace UnitTestWorkflow
 {
@@ -115,8 +116,124 @@ namespace UnitTestWorkflow
 
         }
 
+
+        [TestMethod]
+        public void TestInitializeWithJumpState()
+        {
+
+            string txt;
+            var storage = new MemoryStorage();
+            var engine = CreateEngine(storage, payload2);
+
+            // must be integrated
+            txt = Text
+                .Txt("Name", "Event1")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", Guid.NewGuid())
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "France");
+            engine.EvaluateEvent(txt);
+
+            var workF = storage.GetAll<Workflow>().FirstOrDefault();
+
+            Assert.AreEqual(workF.CurrentState, "State2");
+
+        }
+
+
+        [TestMethod]
+        public void TestInitialize()
+        {
+
+            string txt;
+            string uuid = Guid.NewGuid().ToString();
+            var storage = new MemoryStorage();
+            var engine = CreateEngine(storage, payload);
+
+            // must be integrated
+            txt = Text
+                .Txt("Name", "Event1")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", uuid)
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "France")
+                .Add("age", 25)
+                ;
+            engine.EvaluateEvent(txt);
+
+            var workF = storage.GetAll<Workflow>().FirstOrDefault();
+            Assert.AreEqual(workF.CurrentState, "State1");
+
+
+            // must be integrated
+            txt = Text
+                .Txt("Name", "Event2")
+                .Add("Uuid", uuid)
+                .Add("ExternalId", uuid)
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "France")
+                .Add("age", 25)
+                ;
+            engine.EvaluateEvent(txt);
+            workF = storage.GetAll<Workflow>().FirstOrDefault();
+            Assert.AreEqual(workF.CurrentState, "State2");
+
+        }
+
+        [TestMethod]
+        public void TestExpire()
+        {
+
+            string txt;
+            string uuid = Guid.NewGuid().ToString();
+            var storage = new MemoryStorage();
+            var engine = CreateEngine(storage, payload);
+
+            txt = Text
+                .Txt("Name", "Event1")
+                .Add("Uuid", Guid.NewGuid())
+                .Add("ExternalId", uuid)
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "France")
+                .Add("age", 25)
+                ;
+            engine.EvaluateEvent(txt);
+
+            var wor = storage.GetAll<Workflow>().FirstOrDefault();
+            var bus = storage.GetAll<PushedAction>().ToList();
+            Assert.AreEqual(wor.CurrentState, "State1");
+
+
+            // must be integrated
+            txt = Text
+                .Txt("Name", Constants.Events.ExpiredEventName)
+                .Add("Uuid", uuid)
+                .Add("ExternalId", uuid)
+                .Add("CreationDate", WorkflowClock.Now())
+                .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
+                .Add("Country", "France");
+            engine.EvaluateEvent(txt);
+            wor = storage.GetAll<Workflow>().FirstOrDefault();
+            
+            Assert.AreEqual(wor.CurrentState, "State3");
+
+        }
+
         private WorkflowEngine CreateEngine(MemoryStorage storage, string configText)
         {
+
+            var template = new TemplateRepository(typeof(TemplateModels))
+            {
+                DefaultAction = TemplateModels.DefaultAction,
+            };
+            var metadatas = new MetadatRepository(typeof(MetadataModels))
+            {
+                DefaultAction = MetadataModels.DefaultAction,
+            };
 
             var serializer = new JsonWorkflowSerializer();
 
@@ -127,8 +244,12 @@ namespace UnitTestWorkflow
             var processor = new WorkflowProcessor(configs)
             {
                 LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(serializer, storage)
+                OutputActions = () => CreateOutput(serializer, storage),
+                Templates = template,
+                Metadatas = metadatas,
             };
+
+            
 
             WorkflowEngine engine = new WorkflowEngine()
             {
@@ -147,13 +268,9 @@ namespace UnitTestWorkflow
                         new PushBusActionOutputActionInMemory(storage,
                             new PushModelOutputActionInMemory(storage)
                         )
-                        {
-                            Serializer = serializer,
-                        }
                     );
 
         }
-
 
         private static WorkflowConfig GetConfig(string payload)
         {
@@ -174,7 +291,7 @@ namespace UnitTestWorkflow
 
         public static bool IsMajor(RunContext ctx, int agemin)
         {
-            return ctx.IncomingEvent.ExtendedDatas["age"].ValueAs<int>() >= agemin;
+            return ctx.IncomingEvent.ExtendedDatas["age"].ValueAs<int>(ctx) >= agemin;
         }
 
         public static bool IsEmpty(RunContext ctx, string text)
@@ -215,6 +332,53 @@ namespace UnitTestWorkflow
                      -- (Status = 'InProgress')           
 
         ON EVENT Event2
+            SWITCH State2 
+
+        EXPIRE AFTER 2 DAY
+            SWITCH State3
+
+    ;
+
+    DEFINE STATE State2            'state 2'
+
+    ;
+
+    DEFINE STATE State3            'state 3'
+    
+    ;
+
+";
+
+        private string payload2 = @"
+    NAME wrk1 VERSION 2
+    CONCURENCY 1
+    DESCRIPTION                 'workflow de test'
+    MATCHING (Country = 'France')
+
+    DEFINE EVENT     Event1                     'incoming event 1';
+    DEFINE EVENT     Event2                     'incoming event 2';
+
+    DEFINE RULE      IsMajor (INTEGER agemin)   'this method 1';
+    DEFINE RULE      IsEmpty (TEXT text)        'this method 2'; 
+
+    DEFINE ACTION    Cut(TEXT key)              'Remove user';
+
+    DEFINE CONST     Name 'gael'                'ben oui c est moi';
+    DEFINE CONST     agemin 18                  'min for been major';
+
+    INITIALIZE WORKFLOW
+        ON EVENT Event1 WHEN NOT IsEmpty(text = @Event.ExternalId) 
+            SWITCH State1
+
+    DEFINE STATE State1                         'state 1'
+        ON ENTER STATE 
+            WHEN IsMajor(agemin = agemin)
+                EXECUTE Cut(key = @Event.ExternalId)
+                     -- Cut(key = @Event.ExternalId)
+                STORE   (Status = 'InProgress')           
+                     -- (Status = 'InProgress')           
+
+        ON EVENT Event1
             SWITCH State2 
 
         EXPIRE AFTER 2 DAY

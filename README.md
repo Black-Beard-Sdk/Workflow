@@ -246,13 +246,31 @@ Exemple de configuration workflow
 	var configs = new WorkflowsConfig();
 	configs.AddDocument(config);
 	
+
+	var template = new TemplateRepository(typeof(TemplateModels))
+    {
+        DefaultAction = TemplateModels.DefaultAction,
+    };
+    var metadatas = new MetadatRepository(typeof(MetadataModels))
+    {
+        DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value)
+    };
 	
 	var processor = new WorkflowProcessor(configs)
 	{
 	    LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
 	    OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+		Templates = template,
+        Metadatas = metadatas,
 	};
 	
+	
+     WorkflowEngine engine = new WorkflowEngine()
+     {
+         Serializer = serializer,
+         Processor = processor,
+     };
+
 	
 	// create decorator of worker on the context
 	public OutputAction CreateOutput(IWorkflowSerializer serializer, MemoryStorage storage)
@@ -301,13 +319,6 @@ Exemple de configuration workflow
       'infos2': [ { 'name': 'toto' }, { 'name': 'titi' } ],
     }".Replace("'", "\"");
 
-	IWorkflowSerializer serializer = new JsonWorkflowSerializer();
-    var msg = serializer.Unserialize(payload);
-
 	// evaluate event for workflows
-	processor.EvaluateEvent(ev);
+	engine.EvaluateEvent(ev);
 
-
-// Get all dates for country france
-int year = DateTime.Now.Year;
-var dates = cal.GetDates(year, "France");

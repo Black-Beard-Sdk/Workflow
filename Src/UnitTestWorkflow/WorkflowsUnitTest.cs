@@ -175,7 +175,6 @@ namespace UnitTestWorkflow
             {
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
-
             var processor = new WorkflowProcessor(config)
             {
                 LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
@@ -291,7 +290,7 @@ namespace UnitTestWorkflow
             .AddArgument("v1", "toto")
             .Map(ctx);
             var v1 = result.Arguments.FirstOrDefault();
-            Assert.AreEqual(v1.Value, "toto");
+            Assert.AreEqual(v1.Value.GetValue(ctx), "toto");
         }
 
         [TestMethod]

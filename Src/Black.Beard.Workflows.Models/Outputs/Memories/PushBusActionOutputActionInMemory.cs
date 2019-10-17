@@ -7,7 +7,8 @@ namespace Bb.Workflows.Outputs
     public class PushBusActionOutputActionInMemory : OutputAction
     {
 
-        public PushBusActionOutputActionInMemory(MemoryStorage storage, OutputAction child = null) : base(child)
+        public PushBusActionOutputActionInMemory(MemoryStorage storage, OutputAction child = null) 
+            : base(child)
         {
             this._storage = storage;
         }
@@ -22,11 +23,12 @@ namespace Bb.Workflows.Outputs
 
             foreach (PushedAction item in this.Items)
                 this._storage.Save<PushedAction>(item.Uuid, item);
+
         }
 
         protected override void Prepare_Impl(RunContext ctx)
         {
-            var actions = ctx.Actions.Where(c => c.Kind == Constants.PushActionName).ToList();
+            var actions = ctx.Event.Actions.Where(c => c.Kind == Constants.PushActionName).ToList();
             this.Items.AddRange(actions);
         }
 

@@ -132,7 +132,8 @@ namespace UnitTestWorkflow
                 .Add("ExternalId", Guid.NewGuid())
                 .Add("CreationDate", WorkflowClock.Now())
                 .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
-                .Add("Country", "France");
+                .Add("Country", "France")
+                .Add("Age", 25);
             engine.EvaluateEvent(txt);
 
             var workF = storage.GetAll<Workflow>().FirstOrDefault();
@@ -289,14 +290,19 @@ namespace UnitTestWorkflow
 
         }
 
+       
         public static bool IsMajor(RunContext ctx, int agemin)
         {
-            return ctx.IncomingEvent.ExtendedDatas["age"].ValueAs<int>(ctx) >= agemin;
+            var p = ctx.IncomingEvent.ExtendedDatas["Age"];
+            if (p == null || p == DynObject.None)
+                return false;
+            var value = p.ValueAs<int>(ctx);
+            return value >= agemin;
         }
 
         public static bool IsEmpty(RunContext ctx, string text)
         {
-            return string.IsNullOrEmpty(text);
+            return string.IsNullOrEmpty((string)text);
         }
 
 
@@ -368,7 +374,7 @@ namespace UnitTestWorkflow
 
     INITIALIZE WORKFLOW
         ON EVENT Event1 WHEN NOT IsEmpty(text = @Event.ExternalId) 
-            SWITCH State1
+            RECURSIVE SWITCH State1
 
     DEFINE STATE State1                         'state 1'
         ON ENTER STATE 

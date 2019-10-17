@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 
 namespace Bb.Workflows.Parser.Models
 {
@@ -71,55 +72,54 @@ namespace Bb.Workflows.Parser.Models
             var m = Expression.Call(this.Method, _args.ToArray());
 
 
-            // Build log method
-            List<Expression> _args2 = new List<Expression>(arguments.Length + 2);
-            _args2.Add(Expression.Constant(this.RuleName));
-            _args2.Add(m);
 
-            List<string> _args3 = new List<string>(4);
+            // Build log method
+            List<Expression> _argsLog = new List<Expression>(4);
+            _argsLog.Add(Expression.Constant(this.RuleName));
+            _argsLog.Add(m);
+            List<Expression> _argValues = new List<Expression>();
+            List<Expression> _argNames = new List<Expression>();
 
             for (int i = 0; i < arguments.Length; i++)
             {
                 var argument = arguments[i];
-
                 if (argument.Type == typeof(TContext))
-                    _args2.Add(argument);
-
-                else if (argument is ConstantExpression c)
-                    _args3.Add(c.Value.ToString());
-
+                    _argsLog.Add(argument);
                 else
                 {
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        System.Diagnostics.Debugger.Break();
+                    _argNames.Add(Expression.Constant(parameters[i].Name));
+                    _argValues.Add(argument.ConvertIfDifferent(typeof(object)));
                 }
-
             }
 
-            _args2.Add(Expression.Constant(_args3.ToArray()));
-            var m2 = Expression.Call(_methodLogResult, _args2.ToArray());
+            _argsLog.Add(Expression.NewArrayInit(typeof(string), _argNames));
+            _argsLog.Add(Expression.NewArrayInit(typeof(object), _argValues));
 
+            var m2 = Expression.Call(_methodLogResult, _argsLog.ToArray());
             return m2;
 
         }
 
-
-        public static Expression<Func<TContext, object>> GetAccessorToArgument(string fullPath, ParameterExpression arg0)
+        public static Expression<Func<TContext, object>> GetAccessorToArgument2(string fullPath, ParameterExpression arg0)
         {
+            var result = GetAccessorToArgumentGenerateCode(fullPath, arg0);
+         
+            result.Item2.Add(result.Item1.Last()); // Create return of the function
+            var b = Expression.Block(typeof(object), result.Item1 , result.Item2);
+            var lbd = Expression.Lambda<Func<TContext, object>>(b, arg0);
+            return lbd;
+        }
 
-            Type type = typeof(TContext);
 
-            var ctor = typeof(NullReferenceException).GetConstructor(new Type[] { typeof(string) });
+        public static (IEnumerable<ParameterExpression>, List<Expression>) GetAccessorToArgumentGenerateCode(string fullPath, ParameterExpression arg0)
+        {
 
             Dictionary<Type, ParameterExpression> varDic = new Dictionary<Type, ParameterExpression>();
             List<Expression> blk = new List<Expression>();
-            ParameterExpression currentInstance;
-            Type lastInstanceType = type;
-            currentInstance = Expression.Parameter(type, "_" + type.Name.ToLower());
+            ParameterExpression currentInstance = arg0;
+            Type lastInstanceType = currentInstance.Type;
+
             varDic.Add(currentInstance.Type, currentInstance);
-
-
-            blk.Add(Expression.Assign(currentInstance, Expression.Convert(arg0, type)));
 
             var path = new Queue<string>(fullPath.Split('.'));
             PropertyInfo property;
@@ -134,13 +134,13 @@ namespace Bb.Workflows.Parser.Models
                     var _p = GetPath(path, memberName);
 
                     if (!varDic.TryGetValue(typeof(DynObject), out ParameterExpression p))
-                        varDic.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + type.Name.ToLower())));
+                        varDic.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + typeof(DynObject).Name.ToLower())));
 
                     if (!varDic.TryGetValue(typeof(string), out parameterResult))
                         varDic.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
 
                     var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
+                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, currentInstance));
                     blk.Add(j);
                 }
                 else
@@ -165,7 +165,7 @@ namespace Bb.Workflows.Parser.Models
                             varDic.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
 
                         var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
+                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, currentInstance));
                         blk.Add(j);
 
                     }
@@ -179,7 +179,7 @@ namespace Bb.Workflows.Parser.Models
                         blk.Add(e);
 
                         var i = Expression.IfThen(Expression.Equal(parameterResult, Expression.Constant(null)),
-                            Expression.Throw(Expression.New(ctor, Expression.Constant(memberName)), typeof(NullReferenceException))
+                            typeof(NullReferenceException).Throw(Expression.Constant(memberName))
                             );
                         blk.Add(i);
 
@@ -189,12 +189,8 @@ namespace Bb.Workflows.Parser.Models
 
             }
 
-            blk.Add(parameterResult);
 
-            var b = Expression.Block(typeof(object), varDic.Values, blk.ToArray());
-            var lbd = Expression.Lambda<Func<TContext, object>>(b, arg0);
-
-            return lbd;
+            return (varDic.Values, blk);
 
         }
 
@@ -219,21 +215,37 @@ namespace Bb.Workflows.Parser.Models
         /// <param name="context"></param>
         /// <param name="arguments"></param>
         /// <returns></returns>
-        private static bool LogResult(string ruleName, bool result, TContext context, string[] arguments)
+        private static bool LogResult(string ruleName, bool result, TContext context, string[] names, object[] arguments)
         {
 
             if (FunctionalLog == null)
             {
-                string message = $"{ruleName}({string.Join(", ", arguments)}) => {result}";
-                Trace.WriteLine(message);
+                StringBuilder sb = new StringBuilder(1000);
+                sb.Append(ruleName);
+                sb.Append(" (");
+                string comma = string.Empty;
+                for (int i = 0; i < names.Length; i++)
+                {
+                    sb.Append(comma);
+                    var a = arguments[i];
+                    sb.Append(names[i]);
+                    sb.Append(" : ");
+                    sb.Append(a == null ? "null" : a.GetType().Name);
+                    sb.Append(" = ");
+                    sb.Append(a);
+                    comma = ", ";
+                }
+                sb.Append(") =>");
+                sb.Append(result ? "'true'" : "'false'");
+                Trace.WriteLine(sb.ToString());
             }
             else
-                FunctionalLog(ruleName, result, context, arguments);
+                FunctionalLog(ruleName, result, context, names, arguments);
 
             return result;
         }
 
-        public static Func<string, bool, TContext, string[], bool> FunctionalLog;
+        public static Func<string, bool, TContext, string[], object[], bool> FunctionalLog;
 
 
         /// <summary>

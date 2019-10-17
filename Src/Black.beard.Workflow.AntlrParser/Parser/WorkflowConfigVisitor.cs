@@ -419,7 +419,14 @@ namespace Bb.Workflows.Parser
 
                 incomingEvent.Name = Constants.Events.ExpiredEventName;
                 int delay = (int)VisitDelay(context.delay());
-                whenRule = (ctx) => ctx.Workflow.CurrentState == ctx.IncomingEvent.ExtendedDatas["CurrentState"].GetValue(ctx).ToString();
+                whenRule = (ctx) =>
+                {
+                    var i = ctx.IncomingEvent.ExtendedDatas["CurrentState"];
+                    if (i.GetValue == null)
+                        return false;
+                    var j = i.GetValue(ctx)?.ToString();
+                    return ctx.Workflow.CurrentState == j;
+                };
 
                 AddExpirationActions(resultActions, delay);
 

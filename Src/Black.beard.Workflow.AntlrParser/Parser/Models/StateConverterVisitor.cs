@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 
 namespace Bb.Workflows.Parser.Models
@@ -25,6 +26,9 @@ namespace Bb.Workflows.Parser.Models
 
             _block.Add(result);
 
+            if (this._variables.Contains(this._context))
+                this._variables.Remove(this._context);
+
             BlockExpression blk = Expression.Block(this._variables, _block.ToArray());
 
             var lbd = Expression.Lambda<Func<TContext, bool>>(blk, _context);
@@ -32,7 +36,7 @@ namespace Bb.Workflows.Parser.Models
             var resultLbd = lbd.Compile();
 
             return resultLbd;
-        
+
         }
 
         public Expression VisitConstant(ConstantExpressionModel m)
@@ -115,16 +119,22 @@ namespace Bb.Workflows.Parser.Models
                 if (!m.Arguments.TryGetValue(item.Name, out string value))
                     throw new Exceptions.MissingArgumentNameMethodReferenceException($"missing argument {item.Name} in {m.Reference.Method.Name}");
 
-                Expression p1 = GetLambdaArgument(item.Name, value, item.ParameterType);
-                if (p1 is ConstantExpression c1)
-                    arguments.Add(c1);
-                
+                ConstantExpression constant = GetConstants(item.Name, value, item.ParameterType);
+                if (constant !=  null)
+                    arguments.Add(constant);
+
                 else
                 {
-                    var p2 = Expression.Variable(item.ParameterType, item.Name);
-                    _block.Add( Expression.Assign(p2, p1));
-                    _variables.Add(p2);
-                    arguments.Add(p2);
+
+                    var r = BusinessAction<TContext>.GetAccessorToArgumentGenerateCode(value.Substring(1), this._context);
+                    _variables.AddRange(r.Item1);
+                    _block.AddRange(r.Item2);
+
+                    //var p2 = Expression.Variable(item.ParameterType, item.Name);
+                    //_block.Add(Expression.Assign(p2, r.Item1.Last().ConvertIfDifferent(p2.ResolveType())));
+
+                    //_variables.Add(p2);
+                    arguments.Add(r.Item1.Last().ConvertIfDifferent(item.ParameterType));
                 }
             }
 
@@ -141,20 +151,20 @@ namespace Bb.Workflows.Parser.Models
         }
 
 
-        private Expression GetLambdaArgument(string key, string value, Type type)
+        private ConstantExpression GetConstants(string key, string value, Type type)
         {
 
-            Expression func = null;
+            ConstantExpression constant = null;
 
             if (value.StartsWith("'") && value.EndsWith("'"))
             {
                 value = value.Trim('\'');
                 var v = Convert.ChangeType(value, type);
-                func = Expression.Constant(v);
+                constant = Expression.Constant(v);
             }
-            else if (value.StartsWith("'@"))
-
-                func = BusinessAction<TContext>.GetAccessorToArgument(value.Substring(1), this._context);
+            else if (value.StartsWith("@"))
+                constant = null;
+            //func = BusinessAction<TContext>.GetAccessorToArgument(value.Substring(1), this._context);
 
             else
             {
@@ -162,16 +172,16 @@ namespace Bb.Workflows.Parser.Models
                 if (this._constants.TryGetValue(value, out ConstantExpressionModel m))
                 {
                     var v = Convert.ChangeType(m.Value, type);
-                    func = Expression.Constant(v);
+                    constant = Expression.Constant(v);
                 }
                 else
                 {
                     var v = Convert.ChangeType(value, type);
-                    func = Expression.Constant(v);
+                    constant = Expression.Constant(v);
                 }
             }
 
-            return func;
+            return constant;
 
         }
 

@@ -38,7 +38,7 @@ namespace Bb.Workflows.Templates
                 .Add("EventId", (ctx) => ctx.Event.Uuid)                 
                 .Add("From_State", (ctx) => ctx.Event.FromState)
                 .Add("To_State", (ctx) => ctx.Event.ToState)
-                .Add("Arguments", r.Arguments)
+                .Add("Arguments", r?.Arguments)
             ;
 
     }

@@ -5,7 +5,7 @@
 
         public MessageHeader Header { get; set; }
         
-        public MessageBlock Body { get; set; }
+        public Message Body { get; set; }
 
         public override T Accept<T>(MessageVisitor<T> visitor)
         {

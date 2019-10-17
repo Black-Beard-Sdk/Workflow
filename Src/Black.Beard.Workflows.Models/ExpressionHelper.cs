@@ -1,6 +1,7 @@
 ﻿using Bb.Workflows.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -13,6 +14,147 @@ namespace Bb.Workflows
     /// </summary>
     public static class ExpressionHelper
     {
+
+
+
+        static ExpressionHelper()
+        {
+
+            HashSet<string> names = new HashSet<string>()
+            {
+                "ToBoolean",
+                "ToByte",
+                "ToChar",
+                "ToDateTime",
+                "ToDecimal",
+                "ToDouble",
+                "ToInt16",
+                "ToInt32",
+                "ToInt64",
+                "ToSByte",
+                "ToSingle",
+                "ToString",
+                "ToUInt16",
+                "ToUInt32",
+                "ToUInt64",
+                "ChangeType",
+            };
+
+            var ms = typeof(Convert).GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+            foreach (var item in ms)
+            {
+                if (!names.Contains(item.Name))
+                    continue;
+
+                var p = item.GetParameters();
+                if ((p.Length == 1 || p.Length == 2) && p[0].ParameterType != item.ReturnType)
+                {
+                    if (!_dicConverters.TryGetValue(p[0].ParameterType, out Dictionary<Type, MethodInfo> dic2))
+                        _dicConverters.Add(p[0].ParameterType, dic2 = new Dictionary<Type, MethodInfo>());
+
+                    if (!dic2.ContainsKey(item.ReturnType))
+                        dic2.Add(item.ReturnType, item);
+
+                    else
+                    {
+
+                    }
+                }
+            }
+
+        }
+
+
+        public static UnaryExpression Throw(this Type type, params Expression[] args) 
+        {
+
+            if (!typeof(Exception).IsAssignableFrom(type))
+                throw new InvalidCastException($"{type.Name} don't inherit from Exception");
+
+            List<Type> _types = new List<Type>();
+            foreach (var arg in args)
+                _types.Add(arg.ResolveType());
+
+            var ctor = type.GetConstructor(_types.ToArray());
+            if (ctor == null)
+                throw new MissingMethodException(string.Join(", ", _types.Select(c => c.Name)));
+
+            var result = Expression.Throw(Expression.New(ctor, args), typeof(NullReferenceException));
+
+            return result;
+
+        }
+
+        public static Type ResolveType(this Expression self)
+        {
+
+            return self.NodeType == ExpressionType.Lambda
+                ? (self as LambdaExpression).ReturnType
+                : self.Type;
+
+        }
+
+        /// <summary>
+        /// return an expression of convertion if targetype are differents
+        /// </summary>
+        /// <param name="self"></param>
+        /// <param name="targetType"></param>
+        /// <returns></returns>
+        public static Expression ConvertIfDifferent(this Expression self, Type targetType)
+        {
+
+            Expression result = null;
+            Type sourceType = self.ResolveType();
+
+            if (sourceType != targetType)
+            {
+                try
+                {
+                    result = Expression.Convert(self, targetType);
+                }
+                catch (Exception) // not managed
+                {
+                    if (_dicConverters.TryGetValue(sourceType, out Dictionary<Type, MethodInfo> dic2))
+                        if (dic2.TryGetValue(targetType, out MethodInfo method))
+                        {
+
+                            var parameters = method.GetParameters();
+                            if (parameters.Length == 1)
+                                result = Expression.Call(null, method, self);
+                            else
+                            {
+
+                                if (parameters[1].ParameterType == typeof(IFormatProvider))
+                                    result = Expression.Call(null, method, self, Expression.Constant(CultureInfo.CurrentCulture));
+
+                                else if (parameters[1].ParameterType == typeof(Type))
+                                    result = Expression.Call(null, method, self, Expression.Constant(targetType));
+
+                                else
+                                    result = Expression.Call(null, method, self);
+
+                            }
+                        }
+
+                    if (result == null)
+                    {
+                        if (targetType != typeof(object))
+                        {
+                            result = self.ConvertIfDifferent(typeof(object));
+                            result = result.ConvertIfDifferent(targetType);
+                        }
+                        else throw;
+                    }
+
+                }
+            }
+            else
+                result = self;
+
+            return result;
+
+        }
+
 
         public static Func<object, T> GetConstant<T>(object value)
         {
@@ -53,10 +195,10 @@ namespace Bb.Workflows
                     if (!vars.TryGetValue(typeof(DynObject), out ParameterExpression p))
                         vars.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + type.Name.ToLower())));
 
-                    if (!vars.TryGetValue(typeof(string), out parameterResult))
-                        vars.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
+                    if (!vars.TryGetValue(typeof(object), out parameterResult))
+                        vars.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(object), "_" + typeof(string).Name.ToLower())));
 
-                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
+                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(object) });
                     var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
                     blk.Add(j);
                 }
@@ -79,9 +221,9 @@ namespace Bb.Workflows
                         blk.Add(Expression.Assign(p, Expression.Property(_last, "ExtendedDatas")));
 
                         if (!vars.TryGetValue(typeof(string), out parameterResult))
-                            vars.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(string), "_" + typeof(string).Name.ToLower())));
+                            vars.Add(typeof(object), (parameterResult = Expression.Parameter(typeof(object), "_" + typeof(string).Name.ToLower())));
 
-                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
+                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(RunContext) });
                         var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
                         blk.Add(j);
 
@@ -127,6 +269,9 @@ namespace Bb.Workflows
             return a;
 
         }
+
+
+        private static Dictionary<Type, Dictionary<Type, MethodInfo>> _dicConverters = new Dictionary<Type, Dictionary<Type, MethodInfo>>();
 
     }
 

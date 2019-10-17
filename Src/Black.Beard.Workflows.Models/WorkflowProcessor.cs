@@ -71,20 +71,38 @@ namespace Bb.Workflows
                     var body = Templates.Get(action.Name, action);
                     var header = Metadatas.Get(action.Name);
 
+                    var raw = new MessageRaw()
+                    {
+                        Header = new MessageHeader(header) { },
+                        Body = (MessageBlock)body.Resolve(context),
+                    };
+
                     if (action.Delay > 0)
                     {
 
-                        body = Templates.Get(Constants.PushReminder)
-                            .Add("Message", body);
+                        body = Templates.Get(Constants.PushReminder, new ResultAction() 
+                        {
+                            Uuid = action.Uuid, 
+                            Delay = action.Delay, 
+                            Name = Constants.PushReminder, 
+                            Kind = Constants.PushActionName 
+                        })
+                        .Add("Message", body);
 
                         header = Metadatas.Get(Constants.PushReminder);
 
+                        raw = new MessageRaw()
+                        {
+                            Header = new MessageHeader(header) { },
+                            Body = raw,
+                        };
                     }
 
                     var t = new PushedAction()
                     {
                         Name = action.Name,
                         Uuid = action.Uuid,
+                        Kind = action.Kind,
                         ExecuteMessage = new MessageRaw()
                         {
                             Header = new MessageHeader(header) { },

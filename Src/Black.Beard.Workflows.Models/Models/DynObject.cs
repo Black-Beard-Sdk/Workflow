@@ -114,8 +114,11 @@ namespace Bb.Workflows.Models
         {
             var arg = new DynObject();
             this.Items.Add(key, arg);
-            foreach (var item in arguments)
-                arg.Add(item.Key, item.Value);
+            if (arguments != null)
+            {
+                foreach (var item in arguments)
+                    arg.Add(item.Key, item.Value);
+            }
             return this;
         }
 

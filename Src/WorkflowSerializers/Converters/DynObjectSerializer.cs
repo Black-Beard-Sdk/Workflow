@@ -38,7 +38,7 @@ namespace Bb.Workflows.Converters
         {
 
             JToken result = null;
-            object v = value.GetValue(null);
+            object v = value.GetValue != null ? value.GetValue(null) : null;
             if (v != null)
             {
                 if (v is string s)

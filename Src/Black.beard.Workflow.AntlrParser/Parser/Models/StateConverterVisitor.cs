@@ -1,9 +1,12 @@
-﻿using System;
+﻿using Bb.Workflows.Expresssions;
+using Bb.Workflows.Models;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Bb.Workflows.Parser.Models
@@ -14,8 +17,16 @@ namespace Bb.Workflows.Parser.Models
 
         public StateConverterVisitor(Dictionary<string, ConstantExpressionModel> constants)
         {
+
+            _GetName = (t) => "_" + t.Name.ToLower();
+
             _constants = constants;
-            this._context = Expression.Parameter(typeof(TContext), "context");
+
+            this._context = this._block.AddParameter(typeof(TContext), _GetName(typeof(TContext)));
+            this._resultVariable = _block.AddVar(typeof(bool), "_result" + _GetName(typeof(bool)));
+
+            this._block.Assign(this._resultVariable, true.AsConstant());
+
         }
 
 
@@ -23,37 +34,35 @@ namespace Bb.Workflows.Parser.Models
         {
 
             var result = e.Accept(this);
-
             _block.Add(result);
 
-            if (this._variables.Contains(this._context))
-                this._variables.Remove(this._context);
+            var lbd = _block.GenerateLambda<Func<TContext, bool>>();
 
-            BlockExpression blk = Expression.Block(this._variables, _block.ToArray());
+            //var d1 = DebugInfoGenerator.CreatePdbGenerator()
+            //;
 
-            var lbd = Expression.Lambda<Func<TContext, bool>>(blk, _context);
-
-            var resultLbd = lbd.Compile();
-
-            return resultLbd;
+            return lbd.Compile();
 
         }
 
         public Expression VisitConstant(ConstantExpressionModel m)
         {
-
             return Expression.Constant(m);
-
         }
 
         public Expression VisitBinary(BinaryExpressionModel m)
         {
 
-            BinaryExpression result = null;
+            var resultVariable = _resultVariable;
 
+
+            _resultVariable = _block.AddVar(typeof(bool));
             var left = m.Left.Accept(this);
+
+            _resultVariable = _block.AddVar(typeof(bool));
             var right = m.Right.Accept(this);
 
+            BinaryExpression result = null;
             switch (m.Operator)
             {
                 case "AND":
@@ -68,7 +77,13 @@ namespace Bb.Workflows.Parser.Models
                     break;
             }
 
+
+            _resultVariable = resultVariable;
+            _block.Assign(this._resultVariable, result);
+            GetCallLogAction(m.Operator, this._resultVariable);
+
             Debug.Assert(result != null);
+
             return result;
 
         }
@@ -98,8 +113,15 @@ namespace Bb.Workflows.Parser.Models
 
         public Expression VisitNot(NotExpressionModel m)
         {
+
             var e = m.Expression.Accept(this);
-            return Expression.Not(e);
+            var not = Expression.Not(e);
+            _block.Assign(this._resultVariable, not);
+
+            GetCallLogAction("NOT", this._resultVariable);
+
+            return not;
+
         }
 
         public Expression VisitRuleExpression(RuleExpressionModel m)
@@ -110,6 +132,36 @@ namespace Bb.Workflows.Parser.Models
                 this._context
             };
 
+            BuildArguments(m, arguments);
+
+            var catchBlk = new SourceCode()
+            {
+                
+            };
+            var p1 = catchBlk.AddVar(typeof(Exception));
+                        
+            this._block.Try
+                (
+                    new SourceCode()
+                        .Assign(this._resultVariable, m.Reference.Method.Call(arguments.ToArray()))
+                        .Add(GetCallLogAction(m.Reference.Method, m.Key, arguments.ToArray())),
+                    
+                    new CatchStatement()
+                    {
+                        Parameter = p1,
+                        Body = catchBlk
+                            .Add(GetCallLogActionException(m.Reference.Method, m.Key, p1, arguments.ToArray()))
+                            .ReThrow()
+                    }
+
+                );
+
+            return this._resultVariable;
+
+        }
+
+        private void BuildArguments(RuleExpressionModel m, List<Expression> arguments)
+        {
             var parameterMethodList = m.Reference.Method.GetParameters().Skip(1).ToArray();
 
             for (int i = 0; i < parameterMethodList.Length; i++)
@@ -120,36 +172,206 @@ namespace Bb.Workflows.Parser.Models
                     throw new Exceptions.MissingArgumentNameMethodReferenceException($"missing argument {item.Name} in {m.Reference.Method.Name}");
 
                 ConstantExpression constant = GetConstants(item.Name, value, item.ParameterType);
-                if (constant !=  null)
+                if (constant != null)
                     arguments.Add(constant);
 
                 else
                 {
-
-                    var r = BusinessAction<TContext>.GetAccessorToArgumentGenerateCode(value.Substring(1), this._context);
-                    _variables.AddRange(r.Item1);
-                    _block.AddRange(r.Item2);
-
-                    //var p2 = Expression.Variable(item.ParameterType, item.Name);
-                    //_block.Add(Expression.Assign(p2, r.Item1.Last().ConvertIfDifferent(p2.ResolveType())));
-
-                    //_variables.Add(p2);
-                    arguments.Add(r.Item1.Last().ConvertIfDifferent(item.ParameterType));
+                    BuildGetAccessorToArgumentGenerateCode(value.Substring(1));
+                    arguments.Add(_block.LastVariable.ConvertIfDifferent(item.ParameterType));
                 }
             }
+        }
 
-            var _action = new BusinessAction<TContext>()
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public Expression GetCallLogAction(MethodInfo method, string rulename, params Expression[] arguments)
+        {
+
+            // build custom method
+            List<Expression> _args = new List<Expression>(arguments.Length);
+            var parameters = method.GetParameters()
+                .ToArray();
+
+            // Build log method
+            List<Expression> _argValues = new List<Expression>();
+            List<Expression> _argNames = new List<Expression>();
+
+            for (int i = 0; i < arguments.Length; i++)
             {
-                Method = m.Reference.Method,
-                RuleName = m.Key,
-            };
+                var argument = arguments[i];
+                _argNames.Add(Expression.Constant(parameters[i].Name));
+                _argValues.Add(argument.ConvertIfDifferent(typeof(object)));
+            }
 
-            var e = _action.GetCallAction(arguments.ToArray());
+            var call = BusinessLog<TContext>.MethodLogResult.Call(
+                rulename.AsConstant(),
+                this._resultVariable,
+                this._context,
+                typeof(string).NewArray(_argNames),
+                typeof(object).NewArray(_argValues)
+            );
 
-            return e;
+            return call;
 
         }
 
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public Expression GetCallLogActionException(MethodInfo method, string rulename, ParameterExpression parameter, params Expression[] arguments)
+        {
+
+            // build custom method
+            List<Expression> _args = new List<Expression>(arguments.Length);
+            var parameters = method.GetParameters()
+                .ToArray();
+
+            // Build log method
+            List<Expression> _argValues = new List<Expression>();
+            List<Expression> _argNames = new List<Expression>();
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                var argument = arguments[i];
+                _argNames.Add(Expression.Constant(parameters[i].Name));
+                _argValues.Add(argument.ConvertIfDifferent(typeof(object)));
+            }
+
+            var call = BusinessLog<TContext>.MethodLogResultException.Call(
+                rulename.AsConstant(),
+                parameter,
+                this._context,
+                typeof(string).NewArray(_argNames),
+                typeof(object).NewArray(_argValues)
+            );
+
+            return call;
+
+        }
+
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public Expression GetCallLogAction(string rulename, params Expression[] arguments)
+        {
+
+            // build custom method
+            List<Expression> _args = new List<Expression>(arguments.Length);
+
+            // Build log method
+            List<Expression> _argValues = new List<Expression>();
+            List<Expression> _argNames = new List<Expression>();
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                var argument = arguments[i];
+
+                if (argument is ParameterExpression p)
+                {
+                    _argNames.Add(Expression.Constant(p.Name));
+                    _argValues.Add(argument.ConvertIfDifferent(typeof(object)));
+                }
+                else
+                    throw new InvalidOperationException("only expresion of type ParameterExpression are managed");
+            }
+
+            var call = BusinessLog<TContext>.MethodLogResult.Call(
+                rulename.AsConstant(),
+                this._resultVariable,
+                this._context,
+                typeof(string).NewArray(_argNames),
+                typeof(object).NewArray(_argValues)
+            );
+
+            return call;
+
+        }
+
+        public void BuildGetAccessorToArgumentGenerateCode(string fullPath)
+        {
+
+            List<Expression> blk = new List<Expression>();
+            ParameterExpression currentInstance = this._context;
+            Type lastInstanceType = currentInstance.Type;
+
+            var path = new Queue<string>(fullPath.Split('.'));
+            PropertyInfo property;
+            ParameterExpression parameterResult = null;
+
+
+            while (path.Count > 0)
+            {
+                var memberName = path.Dequeue();
+                if (lastInstanceType == typeof(DynObject))
+                {
+
+                    var _p = GetPath(path, memberName);
+
+                    var p = _block.AddVarIfNotExists(typeof(DynObject), _GetName(typeof(DynObject)));
+                    parameterResult = _block.AddVarIfNotExists(typeof(string), _GetName(typeof(string)));
+
+                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
+                    _block.Assign(parameterResult, p.Call(method, _p, currentInstance));
+
+                }
+                else
+                {
+
+                    var p = _block.AddVarIfNotExists(lastInstanceType, _GetName(lastInstanceType));
+
+                    property = lastInstanceType.GetProperty(memberName);
+                    if (property == null)
+                    {
+
+                        var _last = p;
+                        var _p = GetPath(path, memberName);
+                        p = _block.AddVarIfNotExists(typeof(DynObject), _GetName(typeof(DynObject)));
+                        _block.Assign(p, Expression.Property(_last, "ExtendedDatas"));
+
+                        parameterResult = _block.AddVarIfNotExists(typeof(string), _GetName(typeof(string)));
+                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
+                        _block.Assign(parameterResult, p.Call(method, _p, currentInstance));
+
+                    }
+                    else
+                    {
+
+                        parameterResult = _block.AddVarIfNotExists(property.PropertyType, _GetName(property.PropertyType));
+                        _block.Assign(parameterResult, Expression.Property(p, property));
+
+                        _block.If(Expression.Equal(parameterResult, Expression.Constant(null))
+                            , typeof(NullReferenceException).Throw(Expression.Constant(memberName))
+                            );
+
+                        lastInstanceType = property.PropertyType;
+
+                    }
+                }
+
+            }
+
+        }
+
+        private static Expression GetPath(Queue<string> path, string memberName)
+        {
+            List<string> _l = new List<string>(path.Count + 1) { memberName };
+            while (path.Count > 0)
+                _l.Add(path.Dequeue());
+            var ctor = typeof(Queue<string>).GetConstructor(new Type[] { typeof(IEnumerable<string>) });
+            var arg = Expression.NewArrayInit(typeof(string), _l.Select(c => Expression.Constant(c)).ToArray());
+            var a = Expression.New(ctor, arg);
+
+            return a;
+
+        }
 
         private ConstantExpression GetConstants(string key, string value, Type type)
         {
@@ -185,13 +407,13 @@ namespace Bb.Workflows.Parser.Models
 
         }
 
+
         private List<ParameterExpression> _variables = new List<ParameterExpression>();
-        private List<Expression> _block = new List<Expression>();
-
-
+        private SourceCodeMethod _block = new SourceCodeMethod();
+        private readonly Func<Type, string> _GetName;
         private readonly Dictionary<string, ConstantExpressionModel> _constants;
         private ParameterExpression _context;
-
+        private ParameterExpression _resultVariable;
     }
 
     //public static class MethodDiscovery

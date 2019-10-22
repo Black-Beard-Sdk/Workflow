@@ -1,7 +1,7 @@
 ﻿using Bb.Workflows.Models;
 using System.Linq;
 
-namespace Bb.Workflows
+namespace Bb.Workflows.Rules
 {
     public static class EventStates
     {

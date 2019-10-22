@@ -12,6 +12,7 @@ using Bb.Workflows.Exceptions;
 using Bb.Workflows.Parser.Models;
 using System.Reflection;
 using System.Linq.Expressions;
+using Bb.Workflows.Expresssions;
 
 namespace Bb.Workflows.Parser
 {

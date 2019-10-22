@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Expressions\CatchStatement.cs" />
+    <Compile Remove="Expressions\ConditionalStatement.cs" />
+    <Compile Remove="Expressions\ExpressionHelper.cs" />
+    <Compile Remove="Expressions\ExpressionStatement.cs" />
+    <Compile Remove="Expressions\GotoStatement.cs" />
+    <Compile Remove="Expressions\Label.cs" />
+    <Compile Remove="Expressions\Labels.cs" />
+    <Compile Remove="Expressions\LoopStatement.cs" />
+    <Compile Remove="Expressions\SourceCode.cs" />
+    <Compile Remove="Expressions\SourceCodeMethod.cs" />
+    <Compile Remove="Expressions\Statement.cs" />
+    <Compile Remove="Expressions\TryStatement.cs" />
+    <Compile Remove="Expressions\Variable.cs" />
+    <Compile Remove="Expressions\Variables.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Reflection.Emit" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Expressions\" />
+  </ItemGroup>
+
+</Project>

@@ -117,7 +117,7 @@ namespace Bb.Workflows
         public static ResultActionConfig AddArgument(this ResultActionConfig self, string key, string value)
         {
             if (value is string s && s.StartsWith("@"))
-                self.Arguments.Add(key, ExpressionHelper.GetAccessors<RunContext>(s.Substring(1)));
+                self.Arguments.Add(key, Expresssions.ExpressionHelper.GetAccessors<RunContext>(s.Substring(1)));
             else
                 self.Arguments.Add(key, (c) => value);
             return self;

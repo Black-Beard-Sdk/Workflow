@@ -373,7 +373,7 @@ namespace UnitTestWorkflow
     DEFINE CONST     agemin 18                  'min for been major';
 
     INITIALIZE WORKFLOW
-        ON EVENT Event1 WHEN NOT IsEmpty(text = @Event.ExternalId) 
+        ON EVENT Event1 WHEN (NOT IsEmpty(text = @Event.ExternalId)) 
             RECURSIVE SWITCH State1
 
     DEFINE STATE State1                         'state 1'

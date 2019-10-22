@@ -220,6 +220,7 @@ namespace Bb.Workflows
                     ExtendedDatas = @event.ExtendedDatas.Clone(),
                     Concurency = 1,
                 };
+
                 ctx = new RunContext(wrk, @event)
                 {
                     Serializer = this.Serializer,

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Bb.Workflows
+namespace Bb.Workflows.Rules
 {
 
     public static class EventRules

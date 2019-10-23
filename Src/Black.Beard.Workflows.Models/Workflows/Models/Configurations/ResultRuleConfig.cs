@@ -8,12 +8,14 @@ namespace Bb.Workflows.Models.Configurations
     public class ResultRuleConfig
     {
 
-        public Func<RunContext, bool> Rule { get; set; }
+        public Func<RunContext, bool> WhenRule { get; set; }
+        public string WhenRuleText { get; set; }
 
         public List<ResultActionConfig> Actions { get; set; } = new List<ResultActionConfig>();
-    
-        public string RuleText { get; set; }
-    
+        public string WhenRuleCode { get; set; }
+
+        public RuleSpan WhenRulePosition { get; set; } = new RuleSpan();
+
     }
 
 }

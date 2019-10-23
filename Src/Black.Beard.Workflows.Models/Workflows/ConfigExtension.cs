@@ -15,7 +15,7 @@ namespace Bb.Workflows
             if (!self.Initializers.TryGetValue(eventName, out InitializationOnEventConfig o))
                 self.Initializers.Add(eventName, o = new InitializationOnEventConfig() { EventName = eventName });
 
-            o.Switchs.Add(new InitializationConfig() { TargetStateName = targetStateName, Rule = rule });
+            o.Switchs.Add(new InitializationConfig() { TargetStateName = targetStateName, WhenRule = rule });
 
             return self;
         }
@@ -26,9 +26,9 @@ namespace Bb.Workflows
             return self;
         }
 
-        public static InitializationOnEventConfig AddSwitch(this InitializationOnEventConfig self, string targetStateName, Func<RunContext, bool> rule = null, string ruleName = "")
+        public static InitializationOnEventConfig AddSwitch(this InitializationOnEventConfig self, string targetStateName, Func<RunContext, bool> rule = null, string ruleName = "", string code = "", RuleSpan whenRulePosition = null)
         {
-            self.AddSwitch(new InitializationConfig() { TargetStateName = targetStateName, Rule = rule, RuleText = ruleName });
+            self.AddSwitch(new InitializationConfig() { TargetStateName = targetStateName, WhenRule = rule, WhenRuleText = ruleName, WhenRuleCode = code, WhenRulePosition = whenRulePosition });
             return self;
         }
 
@@ -71,12 +71,12 @@ namespace Bb.Workflows
 
         public static IncomingEventConfig AddAction(this IncomingEventConfig self, Func<RunContext, bool> func, ResultActionConfig act)
         {
-            var r = self.Rules.FirstOrDefault(c => c.Rule == func);
+            var r = self.Rules.FirstOrDefault(c => c.WhenRule == func);
             if (r == null)
             {
                 r = new ResultRuleConfig()
                 {
-                    Rule = func,
+                    WhenRule = func,
                 };
                 self.Rules.Add(r);
             }
@@ -86,12 +86,12 @@ namespace Bb.Workflows
 
         public static TransitionConfig AddAction(this TransitionConfig self, Func<RunContext, bool> func, params ResultActionConfig[] actions)
         {
-            var r = self.RuleActions.FirstOrDefault(c => c.Rule == func);
+            var r = self.RuleActions.FirstOrDefault(c => c.WhenRule == func);
             if (r == null)
             {
                 r = new ResultRuleConfig()
                 {
-                    Rule = func,
+                    WhenRule = func,
                 };
                 self.RuleActions.Add(r);
             }
@@ -101,12 +101,12 @@ namespace Bb.Workflows
 
         public static StateConfig AddIncomingActions(this StateConfig self, Func<RunContext, bool> func, params ResultActionConfig[] actions)
         {
-            var r = self.IncomingRules.FirstOrDefault(c => c.Rule == func);
+            var r = self.IncomingRules.FirstOrDefault(c => c.WhenRule == func);
             if (r == null)
             {
                 r = new ResultRuleConfig()
                 {
-                    Rule = func,
+                    WhenRule = func,
                 };
                 self.IncomingRules.Add(r);
             }
@@ -131,12 +131,12 @@ namespace Bb.Workflows
 
         public static StateConfig AddOutcomingActions(this StateConfig self, Func<RunContext, bool> func, params ResultActionConfig[] actions)
         {
-            var r = self.OutcomingRules.FirstOrDefault(c => c.Rule == func);
+            var r = self.OutcomingRules.FirstOrDefault(c => c.WhenRule == func);
             if (r == null)
             {
                 r = new ResultRuleConfig()
                 {
-                    Rule = func,
+                    WhenRule = func,
                 };
                 self.OutcomingRules.Add(r);
             }

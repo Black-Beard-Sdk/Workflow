@@ -383,12 +383,26 @@ namespace Bb.Workflows.Parser
             string _switch = (string)VisitKey(keys[1]);
 
             string conditionTxt = string.Empty;
+            string conditionCode = string.Empty;
             Func<RunContext, bool> func = null;
+            RuleSpan whenRulePosition = null;
             if (context.WHEN() != null)
             {
                 var condition = context.rule_conditions();
                 conditionTxt = condition.GetText();
-                func = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(condition));
+                var compilation = ((Func<RunContext, bool>, string))Compile((ExpressionModel)VisitRule_conditions(condition));
+                func = compilation.Item1;
+                conditionCode = compilation.Item2;
+                whenRulePosition = new RuleSpan()
+                {
+                    StartLine = condition.Start.Line,
+                    StartColumn = condition.Start.Column,
+                    StartIndex = condition.Start.StartIndex,
+
+                    StopLine = condition.Stop.Line,
+                    StopColumn = condition.Stop.Column,
+                    StopIndex = condition.Stop.StopIndex,
+                };
             }
 
             InitializationOnEventConfig c1 = new InitializationOnEventConfig()
@@ -396,7 +410,7 @@ namespace Bb.Workflows.Parser
                 EventName = eventName,
                 Recursive = context.RECURSIVE() != null,
             }
-            .AddSwitch(_switch, func, conditionTxt);
+            .AddSwitch(_switch, func, conditionTxt, conditionCode, whenRulePosition);
 
             return c1;
         }
@@ -507,8 +521,8 @@ namespace Bb.Workflows.Parser
 
             rule = new ResultRuleConfig()
             {
-                RuleText = $"@IncomingEvent.Name != '{Constants.Events.ExpiredEventName}'",
-                Rule = (ctx) => ctx.IncomingEvent.Name != Constants.Events.ExpiredEventName,
+                WhenRuleText = $"@IncomingEvent.Name != '{Constants.Events.ExpiredEventName}'",
+                WhenRule = (ctx) => ctx.IncomingEvent.Name != Constants.Events.ExpiredEventName,
             };
             rule.Actions.Add(resultAction);
             resultActions.Add(("out", rule));
@@ -538,9 +552,21 @@ namespace Bb.Workflows.Parser
 
             if (context.WHEN() != null)
             {
-                var conditions = context.rule_conditions();
-                t.WhenRuleText = conditions.GetText();
-                t.WhenRule = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(conditions));
+                var condition = context.rule_conditions();
+                t.WhenRuleText = condition.GetText();
+                t.WhenRulePosition = new RuleSpan()
+                {
+                    StartLine = condition.Start.Line,
+                    StartColumn = condition.Start.Column,
+                    StartIndex = condition.Start.StartIndex,
+
+                    StopLine = condition.Stop.Line,
+                    StopColumn = condition.Stop.Column,
+                    StopIndex = condition.Stop.StopIndex,
+                };
+                var compilation = ((Func<RunContext, bool>, string))Compile((ExpressionModel)VisitRule_conditions(condition));
+                t.WhenRule = compilation.Item1;
+                t.WhenRuleCode = compilation.Item2;
             }
 
             var executes = context.execute2();
@@ -600,8 +626,21 @@ namespace Bb.Workflows.Parser
             if (context.WHEN() != null)
             {
                 var condition = context.rule_conditions();
-                rule.RuleText = condition.GetText();
-                rule.Rule = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(condition));
+                rule.WhenRuleText = condition.GetText();
+                rule.WhenRulePosition = new RuleSpan()
+                {
+                    StartLine = condition.Start.Line,
+                    StartColumn = condition.Start.Column,
+                    StartIndex = condition.Start.StartIndex,
+
+                    StopLine = condition.Stop.Line,
+                    StopColumn = condition.Stop.Column,
+                    StopIndex = condition.Stop.StopIndex,
+                };
+
+                var compilation = ((Func<RunContext, bool>, string))Compile((ExpressionModel)VisitRule_conditions(condition));
+                rule.WhenRule = compilation.Item1;
+                rule.WhenRuleCode = compilation.Item2;
             }
 
             var a = context.execute3();
@@ -1223,10 +1262,10 @@ namespace Bb.Workflows.Parser
 
         }
 
-        private Func<RunContext, bool> Compile(ExpressionModel expressionModel)
+        private (Func<RunContext, bool>, string) Compile(ExpressionModel expressionModel)
         {
             StateConverterVisitor<RunContext> visitor = new StateConverterVisitor<RunContext>(_constants);
-            Func<RunContext, bool> result = visitor.Visit(expressionModel);
+            (Func<RunContext, bool>, string) result = visitor.Visit(expressionModel);
             return result;
         }
 

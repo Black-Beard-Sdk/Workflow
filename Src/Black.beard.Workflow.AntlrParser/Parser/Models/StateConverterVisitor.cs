@@ -13,6 +13,7 @@ namespace Bb.Workflows.Parser.Models
 {
 
     public class StateConverterVisitor<TContext> : IVisitor<Expression>
+        where TContext : RunContext
     {
 
         public StateConverterVisitor(Dictionary<string, ConstantExpressionModel> constants)
@@ -30,7 +31,7 @@ namespace Bb.Workflows.Parser.Models
         }
 
 
-        public Func<TContext, bool> Visit(ExpressionModel e)
+        public (Func<TContext, bool>, string) Visit(ExpressionModel e)
         {
 
             var result = e.Accept(this);
@@ -38,10 +39,7 @@ namespace Bb.Workflows.Parser.Models
 
             var lbd = _block.GenerateLambda<Func<TContext, bool>>();
 
-            //var d1 = DebugInfoGenerator.CreatePdbGenerator()
-            //;
-
-            return lbd.Compile();
+            return (lbd.Compile(), lbd.ToString());
 
         }
 

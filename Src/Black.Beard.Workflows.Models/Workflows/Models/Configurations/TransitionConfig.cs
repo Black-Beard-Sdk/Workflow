@@ -23,6 +23,8 @@ namespace Bb.Workflows.Models.Configurations
         public StateConfig TargetState { get; internal set; }
         public string Label { get; internal set; }
         public string WhenRuleText { get; set; }
+        public string WhenRuleCode { get; set; }
+        public RuleSpan WhenRulePosition { get; set; }
     }
 
 }

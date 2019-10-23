@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Bb.Workflows.Models;
+using Bb.Workflows.Models.Configurations;
+using Bb.Workflows.Models.Logs;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -7,8 +10,8 @@ using System.Text;
 namespace Bb.Workflows
 {
 
-    
-    public class BusinessLog<TContext>
+
+    public class BusinessLog<TContext> where TContext : RunContext
     {
 
         static BusinessLog()
@@ -17,7 +20,6 @@ namespace Bb.Workflows
             BusinessLog<TContext>.MethodLogResult = typeof(BusinessLog<TContext>).GetMethod("LogResult", BindingFlags.Static | BindingFlags.NonPublic);
             BusinessLog<TContext>.MethodLogResultException = typeof(BusinessLog<TContext>).GetMethod("LogResultException", BindingFlags.Static | BindingFlags.NonPublic);
 
-            
         }
 
 
@@ -33,27 +35,55 @@ namespace Bb.Workflows
         private static void LogResult(string ruleName, bool result, TContext context, string[] names, object[] arguments)
         {
 
-            if (FunctionalLog == null)
+            MessageText args = new MessageText();
+
+            for (int i = 0; i < names.Length; i++)
             {
-                StringBuilder sb = new StringBuilder(1000);
-                sb.Append(ruleName);
-                sb.Append(" (");
-                string comma = string.Empty;
-                for (int i = 0; i < names.Length; i++)
-                {
-                    sb.Append(comma);
-                    var a = arguments[i];
-                    sb.Append(names[i]);
-                    sb.Append(" : ");
-                    sb.Append(a == null ? "null" : a.GetType().Name);
-                    sb.Append(" = ");
-                    sb.Append(a);
-                    comma = ", ";
-                }
-                sb.Append(") =>");
-                sb.Append(result ? "'true'" : "'false'");
-                Trace.WriteLine(sb.ToString());
+                var a = arguments[i];
+                args.Add(names[i], MessageText
+                    .Text("type", a == null ? "null" : a.GetType().Name)
+                    .Add("value", a.ToString())
+                    );
             }
+
+            MessageText message = MessageText
+                .Text("incomingEvent", context.IncomingEvent.Uuid)
+                .Add("incomingEventDate", context.IncomingEvent.EventDate)
+                .Add("workflowUuid", context.Workflow.Uuid)
+                .Add("workflowName", context.Workflow.WorkflowName)
+                .Add("workflowVersion", context.Workflow.Version)
+                .Add("workflowCreationDate", context.Workflow.CreationDate)
+                .Add("success", "true")
+                .Add("functionalRule", context.CurrentEvaluation.WhenRuleText)
+                .Add("CompiledCode", context.CurrentEvaluation.WhenRuleCode)
+                .Add("value", MessageText
+                    .Text("evaluate", ruleName)
+                    .Add("arguments", args)
+                    .Add("result", result ? "'true'" : "'false'")
+                );
+
+            var position = context.CurrentEvaluation.WhenRulePosition;
+            if (position != null && position != RuleSpan.None)
+            {
+
+                message.Add("positions",
+                    MessageText
+                        .Text(nameof(position.StartColumn), position.StartColumn)
+                        .Add(nameof(position.StartIndex), position.StartIndex)
+                        .Add(nameof(position.StartLine), position.StartIndex)
+                        .Add(nameof(position.StopColumn), position.StartIndex)
+                        .Add(nameof(position.StopIndex), position.StartIndex)
+                        .Add(nameof(position.StopLine), position.StartIndex)
+                    );
+
+            }
+
+
+            context.FunctionalLog.Add(message);
+
+            if (FunctionalLog == null)
+                Trace.WriteLine(message.ToString());
+
             else
                 FunctionalLog(ruleName, result, context, names, arguments);
 
@@ -70,29 +100,58 @@ namespace Bb.Workflows
         private static void LogResultException(string ruleName, Exception result, TContext context, string[] names, object[] arguments)
         {
 
-            if (FunctionalLog == null)
+            MessageText args = new MessageText();
+
+            for (int i = 0; i < names.Length; i++)
             {
-                StringBuilder sb = new StringBuilder(1000);
-                sb.Append(ruleName);
-                sb.Append(" (");
-                string comma = string.Empty;
-                for (int i = 0; i < names.Length; i++)
-                {
-                    sb.Append(comma);
-                    var a = arguments[i];
-                    sb.Append(names[i]);
-                    sb.Append(" : ");
-                    sb.Append(a == null ? "null" : a.GetType().Name);
-                    sb.Append(" = ");
-                    sb.Append(a);
-                    comma = ", ";
-                }
-                sb.Append(") =>");
-                sb.Append(result.Message);
-                Trace.WriteLine(sb.ToString());
+                var a = arguments[i];
+                args.Add(names[i], MessageText
+                    .Text("type", a == null ? "null" : a.GetType().Name)
+                    .Add("value", a.ToString())
+                    );
             }
+
+            MessageText message = MessageText
+                .Text("incomingEvent", context.IncomingEvent.Uuid)
+                .Add("incomingEventDate", context.IncomingEvent.EventDate)
+                .Add("workflowUuid", context.Workflow.Uuid)
+                .Add("workflowName", context.Workflow.WorkflowName)
+                .Add("workflowVersion", context.Workflow.Version)
+                .Add("workflowCreationDate", context.Workflow.CreationDate)
+                .Add("success", "false")
+                .Add("functionalRule", context.CurrentEvaluation.WhenRuleText)
+                .Add("CompiledCode", context.CurrentEvaluation.WhenRuleCode)
+                .Add("value", MessageText
+                    .Text("evaluate", ruleName)
+                    .Add("arguments", args)
+                    .Add("result", result.Message))
+                .Add("exception", result.ToString())
+                ;
+
+            var position = context.CurrentEvaluation.WhenRulePosition;
+            if (position != null && position != RuleSpan.None)
+            {
+
+                message.Add("positions",
+                    MessageText
+                        .Text(nameof(position.StartColumn), position.StartColumn)
+                        .Add(nameof(position.StartIndex), position.StartIndex)
+                        .Add(nameof(position.StartLine), position.StartIndex)
+                        .Add(nameof(position.StopColumn), position.StartIndex)
+                        .Add(nameof(position.StopIndex), position.StartIndex)
+                        .Add(nameof(position.StopLine), position.StartIndex)
+                    );
+
+            }
+
+            context.FunctionalLog.Add(message);
+
+            if (FunctionalLog == null)
+                Trace.WriteLine(message.ToString());
+
             else
                 FunctionalLogException(ruleName, result, context, names, arguments);
+
 
         }
 
@@ -101,7 +160,7 @@ namespace Bb.Workflows
 
         public static readonly MethodInfo MethodLogResult;
         public static readonly MethodInfo MethodLogResultException;
-        
+
     }
 
 }

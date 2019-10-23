@@ -123,11 +123,9 @@ namespace Bb.Workflows
             if (LoadExistingWorkflowsByExternalId != null)
             {
 
-
-
                 List<Workflow> workflows = LoadExistingWorkflowsByExternalId(@event.ExternalId);
 
-                // if incoming event contains WorkflowId it restrict on the specific workflow
+                // if incoming event contains WorkflowId it must be restricted on the specified workflow id
                 if (@event.ExtendedDatas.Items.TryGetValue(Constants.Properties.WorkflowId, out DynObject d))
                 {
                     Guid workflowId = Guid.Parse(d.GetValue(null)?.ToString());
@@ -237,7 +235,7 @@ namespace Bb.Workflows
 
 
                 foreach (var sw in initializationOnEventConfig.Switchs)
-                    if (sw.Rule == null || sw.Rule(ctx))
+                    if (Evaluate(sw, ctx))
                     {
                         ctx.Event.ToState = ctx.Event.FromState = sw.TargetStateName;
                         ctx.Workflow.Recursive = initializationOnEventConfig.Recursive;
@@ -265,7 +263,7 @@ namespace Bb.Workflows
                 ParseAndCollectRules(resultEvent.Rules, ctx);
 
                 foreach (TransitionConfig transition in resultEvent.Transitions)
-                    if (transition.WhenRule == null || transition.WhenRule(ctx))
+                    if (EvaluateRule(transition, ctx))
                     {
 
                         ParseAndCollectRules(transition.RuleActions, ctx);    // Collecte action to execute on transition
@@ -287,7 +285,7 @@ namespace Bb.Workflows
         {
 
             foreach (var subRule in rules)
-                if (subRule.Rule == null || subRule.Rule(ctx))
+                if (Evaluate(subRule, ctx))
                     foreach (var action in subRule.Actions)
                     {
                         ResultAction m = action.Map(ctx);
@@ -296,6 +294,95 @@ namespace Bb.Workflows
 
         }
 
+
+        private static bool EvaluateRule(TransitionConfig m, RunContext ctx)
+        {
+
+            if (m.WhenRule == null)
+                return true;
+
+            ctx.CurrentEvaluation.WhenRuleText = m.WhenRuleText;
+            ctx.CurrentEvaluation.WhenRuleCode = m.WhenRuleCode;
+            ctx.CurrentEvaluation.WhenRulePosition = m.WhenRulePosition;
+            bool result = false;
+            try
+            {
+                result = m.WhenRule(ctx);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            finally
+            {
+                ctx.CurrentEvaluation.WhenRuleText = string.Empty;
+                ctx.CurrentEvaluation.WhenRuleCode = string.Empty;
+                ctx.CurrentEvaluation.WhenRulePosition = RuleSpan.None;
+            }
+
+            return result;
+        }
+
+
+        private bool Evaluate(InitializationConfig m, RunContext ctx)
+        {
+
+            if (m.WhenRule == null)
+                return true;
+
+            ctx.CurrentEvaluation.WhenRuleText = m.WhenRuleText;
+            ctx.CurrentEvaluation.WhenRuleCode = m.WhenRuleCode;
+            ctx.CurrentEvaluation.WhenRulePosition = m.WhenRulePosition;
+            bool result = false;
+            try
+            {
+                result = m.WhenRule(ctx);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            finally
+            {
+                ctx.CurrentEvaluation.WhenRuleText = string.Empty;
+                ctx.CurrentEvaluation.WhenRuleCode = string.Empty;
+                ctx.CurrentEvaluation.WhenRulePosition = RuleSpan.None;
+            }
+
+            return result;
+        }
+
+        private static bool Evaluate(ResultRuleConfig m, RunContext ctx)
+        {
+
+            if (m.WhenRule == null)
+                return true;
+
+            ctx.CurrentEvaluation.WhenRuleText = m.WhenRuleText;
+            ctx.CurrentEvaluation.WhenRuleCode = m.WhenRuleCode;
+            ctx.CurrentEvaluation.WhenRulePosition = m.WhenRulePosition;
+            bool result = false;
+            try
+            {
+                result = m.WhenRule(ctx);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            finally
+            {
+                ctx.CurrentEvaluation.WhenRuleText = string.Empty;
+                ctx.CurrentEvaluation.WhenRuleCode = string.Empty;
+                ctx.CurrentEvaluation.WhenRulePosition = RuleSpan.None;
+            }
+
+            return result;
+
+        }
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Diagnostics.DebuggerNonUserCode]

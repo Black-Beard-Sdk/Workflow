@@ -9,6 +9,7 @@ using Bb.Workflows.Models.Configurations;
 using Bb.Workflows.Outputs;
 using System.Text;
 using Bb.Workflows.Templates;
+using Bb.Workflows.Models.Logs;
 
 namespace UnitTestWorkflow
 {
@@ -48,14 +49,14 @@ namespace UnitTestWorkflow
             Assert.AreEqual(s1.Events[Bb.Workflows.Constants.Events.ExpiredEventName].Transitions[0].TargetState, s3);
 
             Assert.AreEqual(s1.IncomingRules.Count, 2);
-            Assert.AreNotEqual(s1.IncomingRules[0].Rule, null);
+            Assert.AreNotEqual(s1.IncomingRules[0].WhenRule, null);
             Assert.AreEqual(s1.IncomingRules[0].Actions.Count, 2);
             Assert.AreEqual(s1.IncomingRules[0].Actions[0].Kind, "$_push");
             Assert.AreEqual(s1.IncomingRules[0].Actions[1].Kind, "$_update");
 
 
             Assert.AreEqual(s1.OutcomingRules.Count, 1);
-            Assert.AreNotEqual(s1.OutcomingRules[0].Rule, null);
+            Assert.AreNotEqual(s1.OutcomingRules[0].WhenRule, null);
             Assert.AreEqual(s1.OutcomingRules[0].Actions.Count, 1);
             Assert.AreEqual(s1.OutcomingRules[0].Actions[0].Kind, "$_push");
 
@@ -72,8 +73,8 @@ namespace UnitTestWorkflow
             var engine = CreateEngine(storage, payload);
 
             // not integrated because no country specified
-            txt = Text
-                .Txt("Name", "Event1")
+            txt = MessageText
+                .Text("Name", "Event1")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", Guid.NewGuid())
                 .Add("CreationDate", WorkflowClock.Now())
@@ -82,8 +83,8 @@ namespace UnitTestWorkflow
             Assert.AreEqual(storage.GetAll<Workflow>().Count(), 0);
 
             // not integrated because country specified is wrong
-            txt = Text
-                .Txt("Name", "Event1")
+            txt = MessageText
+                .Text("Name", "Event1")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", Guid.NewGuid())
                 .Add("CreationDate", WorkflowClock.Now())
@@ -93,8 +94,8 @@ namespace UnitTestWorkflow
             Assert.AreEqual(storage.GetAll<Workflow>().Count(), 0);
 
             // not integrated because event name is bypassed
-            txt = Text
-                .Txt("Name", "Event666")
+            txt = MessageText
+                .Text("Name", "Event666")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", Guid.NewGuid())
                 .Add("CreationDate", WorkflowClock.Now())
@@ -104,8 +105,8 @@ namespace UnitTestWorkflow
             Assert.AreEqual(storage.GetAll<Workflow>().Count(), 0);
 
             // must be integrated
-            txt = Text
-                .Txt("Name", "Event1")
+            txt = MessageText
+                .Text("Name", "Event1")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", Guid.NewGuid())
                 .Add("CreationDate", WorkflowClock.Now())
@@ -126,8 +127,8 @@ namespace UnitTestWorkflow
             var engine = CreateEngine(storage, payload2);
 
             // must be integrated
-            txt = Text
-                .Txt("Name", "Event1")
+            txt = MessageText
+                .Text("Name", "Event1")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", Guid.NewGuid())
                 .Add("CreationDate", WorkflowClock.Now())
@@ -153,8 +154,8 @@ namespace UnitTestWorkflow
             var engine = CreateEngine(storage, payload);
 
             // must be integrated
-            txt = Text
-                .Txt("Name", "Event1")
+            txt = MessageText
+                .Text("Name", "Event1")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", uuid)
                 .Add("CreationDate", WorkflowClock.Now())
@@ -169,8 +170,8 @@ namespace UnitTestWorkflow
 
 
             // must be integrated
-            txt = Text
-                .Txt("Name", "Event2")
+            txt = MessageText
+                .Text("Name", "Event2")
                 .Add("Uuid", uuid)
                 .Add("ExternalId", uuid)
                 .Add("CreationDate", WorkflowClock.Now())
@@ -193,8 +194,8 @@ namespace UnitTestWorkflow
             var storage = new MemoryStorage();
             var engine = CreateEngine(storage, payload);
 
-            txt = Text
-                .Txt("Name", "Event1")
+            txt = MessageText
+                .Text("Name", "Event1")
                 .Add("Uuid", Guid.NewGuid())
                 .Add("ExternalId", uuid)
                 .Add("CreationDate", WorkflowClock.Now())
@@ -210,8 +211,8 @@ namespace UnitTestWorkflow
 
 
             // must be integrated
-            txt = Text
-                .Txt("Name", Constants.Events.ExpiredEventName)
+            txt = MessageText
+                .Text("Name", Constants.Events.ExpiredEventName)
                 .Add("Uuid", uuid)
                 .Add("ExternalId", uuid)
                 .Add("WorkflowId", wor.Uuid)
@@ -403,66 +404,6 @@ namespace UnitTestWorkflow
 
 ";
 
-    }
-
-    public class Text
-    {
-
-        public Text()
-        {
-            this._sb = new StringBuilder("{ ");
-            this._comma = string.Empty;
-        }
-
-        public static Text Txt(string key, string value)
-        {
-            return new Text().Add(key, value);
-        }
-
-        public Text Add(string key, Guid value)
-        {
-            return this.Add(key, value.ToString());
-        }
-
-        public Text Add(string key, DateTimeOffset value)
-        {
-            return this.Add(key, value.ToString());
-        }
-
-        public Text Add(string key, int value)
-        {
-            return this.Add(key, value.ToString());
-        }
-
-        public Text Add(string key, string value)
-        {
-
-            this._sb.Append(_comma);
-            this._sb.Append(@"""");
-            this._sb.Append(key);
-            this._sb.Append(@""": """);
-            this._sb.Append(value);
-            this._sb.Append(@"""");
-
-            this._comma = ", ";
-
-            return this;
-
-        }
-
-        public override string ToString()
-        {
-            _sb.Append(" }");
-            return _sb.ToString();
-        }
-
-        public static implicit operator string(Text txt)
-        {
-            return txt.ToString();
-        }
-
-        private StringBuilder _sb;
-        private string _comma;
     }
 
 }

@@ -92,7 +92,7 @@ namespace Bb.Workflows.Expresssions
             if (vari != null)
             {
                 if (vari.Instance != arg)
-                    throw new Exception($"parameter {arg.Name} allready exists");
+                    throw new Exceptions.DuplicatedArgumentNameMethodReferenceException($"parameter {arg.Name} already exists");
             }
             else
             {
@@ -156,7 +156,7 @@ namespace Bb.Workflows.Expresssions
                 label = _parent.GetLabelImpl(kind);
 
             if (label == null)
-                throw new Exception($"no label of {kind.ToString()} defined");
+                throw new Exceptions.InvalidArgumentNameMethodReferenceException($"no label of {kind.ToString()} defined");
 
             return label;
 

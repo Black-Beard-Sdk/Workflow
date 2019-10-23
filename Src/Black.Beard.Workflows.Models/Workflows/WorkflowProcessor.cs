@@ -14,12 +14,22 @@ using Bb.Workflows.Templates;
 namespace Bb.Workflows
 {
 
-    public class WorkflowProcessor
+    public abstract class WorkflowProcessor
     {
 
-        public WorkflowProcessor(WorkflowsConfig config)
+        public abstract void EvaluateEvent(IncomingEvent @event);
+
+    }
+
+        public class WorkflowProcessor<TContext> : WorkflowProcessor
+        where TContext : RunContext, new()
+
+    {
+
+        public WorkflowProcessor(WorkflowsConfig config, Action<TContext> contextCreator = null)
         {
             this._config = config;
+            this._contextCreator = contextCreator;
         }
 
         public TemplateRepository Templates { get; set; } = new TemplateRepository();
@@ -30,7 +40,8 @@ namespace Bb.Workflows
 
         public Func<OutputAction> OutputActions { get; set; }
 
-        public void EvaluateEvent(IncomingEvent @event)
+
+        public override void EvaluateEvent(IncomingEvent @event)
         {
 
             if (@event is null)
@@ -39,7 +50,7 @@ namespace Bb.Workflows
             if (OutputActions == null)
                 throw new ArgumentNullException(nameof(OutputActions));
 
-            List<RunContext> contexts = GetExistingContexts(@event).ToList();
+            List<TContext> contexts = GetExistingContexts(@event).ToList();
             var items = contexts.ToLookup(c => c.Workflow.WorkflowName);
             contexts.AddRange(EvaluateNewWorkflow(@event, items));
 
@@ -62,7 +73,7 @@ namespace Bb.Workflows
 
         }
 
-        private void TranslateActions(List<RunContext> contexts)
+        private void TranslateActions(List<TContext> contexts)
         {
             foreach (var context in contexts)
                 foreach (ResultAction action in context.Actions)
@@ -117,7 +128,7 @@ namespace Bb.Workflows
 
         public Func<string, List<Workflow>> LoadExistingWorkflowsByExternalId { get; set; }
 
-        private IEnumerable<RunContext> GetExistingContexts(IncomingEvent @event)
+        private IEnumerable<TContext> GetExistingContexts(IncomingEvent @event)
         {
 
             if (LoadExistingWorkflowsByExternalId != null)
@@ -125,7 +136,7 @@ namespace Bb.Workflows
 
                 List<Workflow> workflows = LoadExistingWorkflowsByExternalId(@event.ExternalId);
 
-                // if incoming event contains WorkflowId it must be restricted on the specified workflow id
+                // if incoming event contains Workflow Id it must be restricted on the specified workflow id
                 if (@event.ExtendedDatas.Items.TryGetValue(Constants.Properties.WorkflowId, out DynObject d))
                 {
                     Guid workflowId = Guid.Parse(d.GetValue(null)?.ToString());
@@ -135,59 +146,79 @@ namespace Bb.Workflows
                 foreach (Workflow item in workflows)
                 {
 
-                    var config = this._config.Get(item.WorkflowName, item.Version);
-
-                    if (!config.DeclaredEvents.ContainsKey(@event.Name))
+                    if (!CheckAndResolveConfig(item, @event.Uuid, @event.Name, out WorkflowConfig config))
                     {
-                        Trace.WriteLine($"{config.Name} don't accept event {@event.Name}");
-                        continue;
+
+                        var ctx = CreateContext(item, @event);
+                        ctx.Event.ToState = ctx.Event.FromState = ctx.PreviousEvent.ToState;
+                        EvaluateEventInCurrentWorkflow(config, ctx);
+
+                        yield return ctx;
+
                     }
 
-                    var ctx = new RunContext(item, @event)
-                    {
-                        Serializer = this.Serializer,
-                    };
-
-                    ctx.Event.ToState = ctx.Event.FromState = ctx.PreviousEvent.ToState;
-
-                    EvaluateEventInCurrentWorkflow(config, ctx);
-
-                    yield return ctx;
-
                 }
-
 
             }
 
         }
 
-        private List<RunContext> EvaluateNewWorkflow(IncomingEvent @event, ILookup<string, RunContext> existingWorkflows)
+        private bool CheckAndResolveConfig(Workflow item, Guid uuid, string eventName, out WorkflowConfig config)
+        {
+
+            config = null;
+
+            // an event can't be integrated twice 
+            if (item.GetEvent(uuid, out _))
+            {
+                Trace.WriteLine($"Duplicated event {uuid} can't be integrated twice.", TraceLevel.Warning.ToString());
+                return false;
+            }
+
+            // resolve config to use
+            config = this._config.Get(item.WorkflowName, item.Version);
+            if (config == null)
+                throw new Exceptions.MissingConfigurationException($"{item.WorkflowName} V {item.Version}");
+
+            // Check this event is managed by this configuration
+            if (!config.DeclaredEvents.ContainsKey(eventName))
+            {
+                Trace.WriteLine($"{config.Name} don't accept event {eventName}");
+                return false;
+            }
+
+            return true;
+
+        }
+
+
+        private List<TContext> EvaluateNewWorkflow(IncomingEvent @event, ILookup<string, TContext> existingWorkflows)
         {
 
             var configs = this._config.Get(@event).ToList();
             if (configs.Count == 0)
                 Trace.WriteLine(new { Message = $"no configuration state selected for event {@event.Uuid}", Event = @event });
 
-            List<RunContext> results = new List<RunContext>();
+            List<TContext> results = new List<TContext>();
 
             foreach (WorkflowConfig config in configs)
             {
 
-                RunContext ctx = EvaluateInitialization(@event, config);
+                TContext ctx = EvaluateIfWorkflowMustBeCreated(@event, config);
                 if (ctx == null)
                     continue;
 
-                RunContext last = null;
+                TContext last = null;
                 if (existingWorkflows != null)
                     last = existingWorkflows[ctx.Workflow.WorkflowName].OrderBy(c => c.Workflow.Concurency).LastOrDefault();
 
                 if (last == null)
-                    results.Add(ExecuteTransitionOnNewWorkflow(config, ctx));
+                    results.Add(ExecuteTransitionAfterCreationOfNewWorkflow(config, ctx));
 
                 else if (last.Workflow.Concurency <= config.Concurrency)
                 {
                     ctx.Workflow.Concurency = last.Workflow.Concurency + 1;
-                    results.Add(ExecuteTransitionOnNewWorkflow(config, ctx));
+                    results.Add(ExecuteTransitionAfterCreationOfNewWorkflow(config, ctx));
                 }
 
             }
@@ -196,8 +227,9 @@ namespace Bb.Workflows
 
         }
 
-        private static RunContext ExecuteTransitionOnNewWorkflow(WorkflowConfig config, RunContext ctx)
+        private static TContext ExecuteTransitionAfterCreationOfNewWorkflow(WorkflowConfig config, TContext ctx)
         {
+
             var state = config.States[ctx.Workflow.CurrentState];
             ParseAndCollectRules(state.IncomingRules, ctx);
 
@@ -205,12 +237,13 @@ namespace Bb.Workflows
                 EvaluateEventInCurrentWorkflow(config, ctx);
 
             return ctx;
+
         }
 
-        private RunContext EvaluateInitialization(IncomingEvent @event, WorkflowConfig config)
+        private TContext EvaluateIfWorkflowMustBeCreated(IncomingEvent @event, WorkflowConfig config)
         {
 
-            RunContext ctx = null;
+            TContext ctx = null;
             string switchTo = string.Empty;
 
             if (config.Initializers.TryGetValue(@event.Name, out InitializationOnEventConfig initializationOnEventConfig))
@@ -228,11 +261,7 @@ namespace Bb.Workflows
                     Concurency = 1,
                 };
 
-                ctx = new RunContext(wrk, @event)
-                {
-                    Serializer = this.Serializer,
-                };
-
+                ctx = CreateContext(wrk, @event);
 
                 foreach (var sw in initializationOnEventConfig.Switchs)
                     if (Evaluate(sw, ctx))
@@ -251,7 +280,12 @@ namespace Bb.Workflows
 
         }
 
-        private static void EvaluateEventInCurrentWorkflow(WorkflowConfig config, RunContext ctx)
+        /// <summary>
+        /// This method evaluate event on the worflow and evaluate impact on it.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="ctx"></param>
+        private static void EvaluateEventInCurrentWorkflow(WorkflowConfig config, TContext ctx)
         {
 
             StateConfig state = config.States[ctx.Event.FromState];
@@ -281,7 +315,7 @@ namespace Bb.Workflows
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ParseAndCollectRules(List<ResultRuleConfig> rules, RunContext ctx)
+        private static void ParseAndCollectRules(List<ResultRuleConfig> rules, TContext ctx)
         {
 
             foreach (var subRule in rules)
@@ -294,8 +328,9 @@ namespace Bb.Workflows
 
         }
 
+        #region RuleEvaluation
 
-        private static bool EvaluateRule(TransitionConfig m, RunContext ctx)
+        private static bool EvaluateRule(TransitionConfig m, TContext ctx)
         {
 
             if (m.WhenRule == null)
@@ -324,8 +359,7 @@ namespace Bb.Workflows
             return result;
         }
 
-
-        private bool Evaluate(InitializationConfig m, RunContext ctx)
+        private bool Evaluate(InitializationConfig m, TContext ctx)
         {
 
             if (m.WhenRule == null)
@@ -354,7 +388,7 @@ namespace Bb.Workflows
             return result;
         }
 
-        private static bool Evaluate(ResultRuleConfig m, RunContext ctx)
+        private static bool Evaluate(ResultRuleConfig m, TContext ctx)
         {
 
             if (m.WhenRule == null)
@@ -383,6 +417,25 @@ namespace Bb.Workflows
             return result;
 
         }
+
+        #endregion RuleEvaluation
+
+        private TContext CreateContext(Workflow workflow, IncomingEvent @event)
+        {
+
+            TContext context = new TContext()
+            {
+                Serializer = this.Serializer,
+            };
+            context.Set(workflow, @event);
+
+            if (this._contextCreator != null)
+                this._contextCreator(context);
+
+            return context;
+
+        }
+
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Diagnostics.DebuggerNonUserCode]
@@ -394,7 +447,7 @@ namespace Bb.Workflows
 
 
         private readonly WorkflowsConfig _config;
-
+        private readonly Action<TContext> _contextCreator;
     }
 
 }

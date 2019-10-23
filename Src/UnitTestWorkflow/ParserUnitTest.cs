@@ -244,7 +244,7 @@ namespace UnitTestWorkflow
                 .AddDocument(GetConfig(configText))
                 ;
 
-            var processor = new WorkflowProcessor(configs)
+            var processor = new WorkflowProcessor<RunContext>(configs)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(serializer, storage),

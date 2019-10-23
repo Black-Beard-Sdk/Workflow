@@ -48,7 +48,7 @@ namespace UnitTestWorkflow
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
 
-            var processor = new WorkflowProcessor(config)
+            var processor = new WorkflowProcessor<RunContext>(config)
             {
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
                 Templates = template,
@@ -101,7 +101,8 @@ namespace UnitTestWorkflow
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
 
-            var processor = new WorkflowProcessor(config)
+
+            var processor = new WorkflowProcessor<RunContext>(config)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
@@ -177,7 +178,7 @@ namespace UnitTestWorkflow
             {
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
-            var processor = new WorkflowProcessor(config)
+            var processor = new WorkflowProcessor<RunContext>(config)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
@@ -246,7 +247,7 @@ namespace UnitTestWorkflow
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value)
             };
 
-            var processor = new WorkflowProcessor(config)
+            var processor = new WorkflowProcessor<RunContext>(config)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
@@ -337,7 +338,7 @@ namespace UnitTestWorkflow
                 LastUpdateDate = WorkflowClock.Now(),
             };
 
-            RunContext ctx = new RunContext(wrk, ev);
+            RunContext ctx = new RunContext().Set(wrk, ev);
 
             return ctx;
 

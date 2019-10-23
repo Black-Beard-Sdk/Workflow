@@ -34,7 +34,7 @@ namespace Bb.Workflows.Models.Configurations
             if (_evaluateFilter == null)
                 BuildWorkflow();
 
-            RunContext ctx = new RunContext(null, @event);
+            RunContext ctx = new RunContext().Set(null, @event);
 
             return _evaluateFilter(ctx);
 

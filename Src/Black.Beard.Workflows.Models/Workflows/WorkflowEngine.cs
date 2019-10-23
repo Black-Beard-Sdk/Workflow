@@ -107,6 +107,7 @@ namespace Bb.Workflows
             private bool disposedValue = false; // To detect redundant calls
             private readonly ILockObject _locker;
             private readonly uint _crc;
+        
         }
 
     }

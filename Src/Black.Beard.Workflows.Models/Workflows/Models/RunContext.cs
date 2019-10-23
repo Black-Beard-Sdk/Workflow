@@ -11,7 +11,12 @@ namespace Bb.Workflows.Models
     public class RunContext
     {
 
-        public RunContext(Workflow workflow, IncomingEvent @event)
+        public RunContext()
+        {
+
+        }
+
+        public RunContext Set(Workflow workflow, IncomingEvent @event)
         {
 
             this.IncomingEvent = @event;
@@ -24,15 +29,17 @@ namespace Bb.Workflows.Models
                 this.Workflow.Events.Add(this.Event);
             }
 
+            return this;
+
         }
 
-        public Workflow Workflow { get; }
+        public Workflow Workflow { get; private set; }
 
-        public IncomingEvent IncomingEvent { get; }
+        public IncomingEvent IncomingEvent { get; private set; }
 
-        public Event Event { get; }
+        public Event Event { get; private set; }
 
-        public Event PreviousEvent { get; }
+        public Event PreviousEvent { get; private set; }
 
         public DynObject ExtendedDatas { get; set; } = new DynObject();
         

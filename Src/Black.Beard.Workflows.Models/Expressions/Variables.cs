@@ -22,7 +22,7 @@ namespace Bb.Workflows.Expresssions
                 this._variables.Add(variable.Name, variable);
 
             else if (variable.Instance != variable2.Instance)
-                throw new Exception($"{variable.Name} allready existings");
+                throw new Exceptions.DuplicatedArgumentNameMethodReferenceException($"{variable.Name} already existings");
 
         }
 

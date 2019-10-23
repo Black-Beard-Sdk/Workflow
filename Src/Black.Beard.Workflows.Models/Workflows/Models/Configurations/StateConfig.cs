@@ -2,6 +2,8 @@
 
 namespace Bb.Workflows.Models.Configurations
 {
+
+    [System.Diagnostics.DebuggerDisplay("{Name} : {Label}")]
     public class StateConfig
     {
 

@@ -214,9 +214,10 @@ namespace UnitTestWorkflow
                 .Txt("Name", Constants.Events.ExpiredEventName)
                 .Add("Uuid", uuid)
                 .Add("ExternalId", uuid)
+                .Add("WorkflowId", wor.Uuid)
                 .Add("CreationDate", WorkflowClock.Now())
                 .Add("EventDate", WorkflowClock.Now().AddMinutes(-5))
-                .Add("Country", "France");
+                .Add("CurrentState", "State1");
             engine.EvaluateEvent(txt);
             wor = storage.GetAll<Workflow>().FirstOrDefault();
             
@@ -244,7 +245,7 @@ namespace UnitTestWorkflow
 
             var processor = new WorkflowProcessor(configs)
             {
-                LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
+                LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(serializer, storage),
                 Templates = template,
                 Metadatas = metadatas,

@@ -2,6 +2,8 @@
 
 namespace Bb.Workflows.Models.Configurations
 {
+
+    [System.Diagnostics.DebuggerDisplay("ON EVENT {EventName}")]
     public class InitializationOnEventConfig
     {
 

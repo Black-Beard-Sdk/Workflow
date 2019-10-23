@@ -4,9 +4,14 @@ using System.Collections.Generic;
 namespace Bb.Workflows.Models.Configurations
 {
 
+    [System.Diagnostics.DebuggerDisplay("WHEN {WhenRuleText} SWITCH {Label}")]
     public class TransitionConfig
     {
 
+        public TransitionConfig()
+        {
+
+        }
 
         public Func<RunContext, bool> WhenRule { get; set; }
 
@@ -14,7 +19,10 @@ namespace Bb.Workflows.Models.Configurations
 
 
         public List<ResultRuleConfig> RuleActions { get; set; } = new List<ResultRuleConfig>();
+        
         public StateConfig TargetState { get; internal set; }
+        public string Label { get; internal set; }
+        public string WhenRuleText { get; set; }
     }
 
 }

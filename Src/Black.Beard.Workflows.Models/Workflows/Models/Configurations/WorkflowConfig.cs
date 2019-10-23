@@ -50,8 +50,17 @@ namespace Bb.Workflows.Models.Configurations
                         BuildAutorizedEvents();
                         BuildStates();
                         _evaluateFilter = BuildIncomingAccessor();
+                        BuildTransitionLabels();
                     }
 
+        }
+
+        private void BuildTransitionLabels()
+        {
+            foreach (var s in this.States)
+                foreach (var e in s.Value.Events)
+                    foreach (var t in e.Value.Transitions)
+                        t.Label = $"{s.Key} -> {t.TargetState}";
         }
 
         private void BuildAutorizedEvents()

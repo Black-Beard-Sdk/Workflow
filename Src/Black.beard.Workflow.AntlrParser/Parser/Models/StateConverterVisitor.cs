@@ -80,34 +80,16 @@ namespace Bb.Workflows.Parser.Models
 
             _resultVariable = resultVariable;
             _block.Assign(this._resultVariable, result);
-            GetCallLogAction(m.Operator, this._resultVariable);
+            _block.Add(GetCallLogAction(m.Operator, this._resultVariable));
 
             Debug.Assert(result != null);
 
-            return result;
+            return _resultVariable;
 
         }
 
         public Expression VisitRule(RuleDefinitionModel m)
         {
-
-            //List<Expression> arguments = new List<Expression>(/*m.Arguments.Count + */1)
-            //{
-            //    this._context
-            //};
-
-            //foreach (var item in m.Method.GetParameters().Skip(1))
-            //{
-            //    var p = Expression.Parameter(item.ParameterType, item.Name);
-            //    arguments.Add(p);
-            //}
-
-            //var e = _actions.GetCallAction(arguments.ToArray());
-
-
-
-            //return e;
-
             return null;
         }
 
@@ -118,9 +100,9 @@ namespace Bb.Workflows.Parser.Models
             var not = Expression.Not(e);
             _block.Assign(this._resultVariable, not);
 
-            GetCallLogAction("NOT", this._resultVariable);
+            _block.Add(GetCallLogAction("NOT", this._resultVariable));
 
-            return not;
+            return this._resultVariable;
 
         }
 

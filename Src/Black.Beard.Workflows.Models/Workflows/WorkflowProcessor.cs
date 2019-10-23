@@ -80,12 +80,12 @@ namespace Bb.Workflows
                     if (action.Delay > 0)
                     {
 
-                        body = Templates.Get(Constants.PushReminder, new ResultAction() 
+                        body = Templates.Get(Constants.PushReminder, new ResultAction()
                         {
-                            Uuid = action.Uuid, 
-                            Delay = action.Delay, 
-                            Name = Constants.PushReminder, 
-                            Kind = Constants.PushActionName 
+                            Uuid = action.Uuid,
+                            Delay = action.Delay,
+                            Name = Constants.PushReminder,
+                            Kind = Constants.PushActionName
                         })
                         .Add("Message", body);
 
@@ -115,15 +115,24 @@ namespace Bb.Workflows
                 }
         }
 
-        public Func<string, List<Workflow>> LoadExistingWorkflows { get; set; }
+        public Func<string, List<Workflow>> LoadExistingWorkflowsByExternalId { get; set; }
 
         private IEnumerable<RunContext> GetExistingContexts(IncomingEvent @event)
         {
 
-            if (LoadExistingWorkflows != null)
+            if (LoadExistingWorkflowsByExternalId != null)
             {
 
-                var workflows = LoadExistingWorkflows(@event.ExternalId);
+
+
+                List<Workflow> workflows = LoadExistingWorkflowsByExternalId(@event.ExternalId);
+
+                // if incoming event contains WorkflowId it restrict on the specific workflow
+                if (@event.ExtendedDatas.Items.TryGetValue(Constants.Properties.WorkflowId, out DynObject d))
+                {
+                    Guid workflowId = Guid.Parse(d.GetValue(null)?.ToString());
+                    workflows = workflows.Where(w => w.Uuid == workflowId).ToList();
+                }
 
                 foreach (Workflow item in workflows)
                 {
@@ -286,6 +295,16 @@ namespace Bb.Workflows
                     }
 
         }
+
+
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Diagnostics.DebuggerNonUserCode]
+        private void Stop()
+        {
+            if (System.Diagnostics.Debugger.IsAttached)
+                System.Diagnostics.Debugger.Break();
+        }
+
 
         private readonly WorkflowsConfig _config;
 

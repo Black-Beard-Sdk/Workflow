@@ -26,6 +26,7 @@ namespace Bb.Workflows.Templates
             DynObject
                 .Create("Uuid", (ctx) => $"{ctx.Workflow.ExternalId}_{ctx.Workflow.Events.Count()}_{ctx.Workflow.CurrentState}_Expiration")
                 .Add("Name", Constants.Events.ExpiredEventName)
+                .Add("WorkflowId", (ctx) => ctx.Workflow.Uuid)
                 .Add("CurrentState", (ctx) => ctx.Workflow.CurrentState)
             ;
 

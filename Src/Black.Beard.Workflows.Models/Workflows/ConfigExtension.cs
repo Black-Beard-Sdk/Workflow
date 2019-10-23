@@ -26,9 +26,9 @@ namespace Bb.Workflows
             return self;
         }
 
-        public static InitializationOnEventConfig AddSwitch(this InitializationOnEventConfig self, string targetStateName, Func<RunContext, bool> rule = null)
+        public static InitializationOnEventConfig AddSwitch(this InitializationOnEventConfig self, string targetStateName, Func<RunContext, bool> rule = null, string ruleName = "")
         {
-            self.AddSwitch(new InitializationConfig() { TargetStateName = targetStateName, Rule = rule });
+            self.AddSwitch(new InitializationConfig() { TargetStateName = targetStateName, Rule = rule, RuleText = ruleName });
             return self;
         }
 

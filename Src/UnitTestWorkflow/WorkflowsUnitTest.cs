@@ -103,7 +103,7 @@ namespace UnitTestWorkflow
 
             var processor = new WorkflowProcessor(config)
             {
-                LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
+                LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,
@@ -148,7 +148,7 @@ namespace UnitTestWorkflow
             config.AddDocument(
                 new WorkflowConfig() { Name = "wrk1", Label = "wrk1 config", Version = 1, }
 
-                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", }.AddSwitch("State1"))
+                .AddInitializer(new InitializationOnEventConfig() { EventName = "evnt1", Recursive = true }.AddSwitch("State1"))
 
                 .AddState(new StateConfig() { Name = "State1", Label = "State1", }
                     .AddIncomingActions(null, new ResultActionConfig() { Name = "act_on_state_in_1" })
@@ -179,7 +179,7 @@ namespace UnitTestWorkflow
             };
             var processor = new WorkflowProcessor(config)
             {
-                LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
+                LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,
@@ -248,7 +248,7 @@ namespace UnitTestWorkflow
 
             var processor = new WorkflowProcessor(config)
             {
-                LoadExistingWorkflows = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
+                LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,

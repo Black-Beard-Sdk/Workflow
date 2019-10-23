@@ -382,16 +382,21 @@ namespace Bb.Workflows.Parser
             string eventName = (string)VisitKey(keys[0]);
             string _switch = (string)VisitKey(keys[1]);
 
+            string conditionTxt = string.Empty;
             Func<RunContext, bool> func = null;
             if (context.WHEN() != null)
-                func = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(context.rule_conditions()));
+            {
+                var condition = context.rule_conditions();
+                conditionTxt = condition.GetText();
+                func = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(condition));
+            }
 
             InitializationOnEventConfig c1 = new InitializationOnEventConfig()
             {
                 EventName = eventName,
                 Recursive = context.RECURSIVE() != null,
             }
-            .AddSwitch(_switch, func);
+            .AddSwitch(_switch, func, conditionTxt);
 
             return c1;
         }
@@ -408,6 +413,7 @@ namespace Bb.Workflows.Parser
 
             List<(string, ResultRuleConfig)> resultActions = new List<(string, ResultRuleConfig)>();
             Func<RunContext, bool> whenRule = null;
+            string whenRuleText = string.Empty;
             var key = context.key();
 
             IncomingEventConfig incomingEvent = new IncomingEventConfig();
@@ -428,18 +434,19 @@ namespace Bb.Workflows.Parser
                     var j = i.GetValue(ctx)?.ToString();
                     return ctx.Workflow.CurrentState == j;
                 };
+                whenRuleText = $"@IncomingEvent.CurrentState == @Workflow.CurrentState";
 
                 AddExpirationActions(resultActions, delay);
 
             }
 
-            InsertTransitions(context, whenRule, incomingEvent);
+            InsertTransitions(context, whenRule, incomingEvent, whenRuleText);
 
             return (incomingEvent, resultActions);
 
         }
 
-        private void InsertTransitions(WorkflowParser.On_event_statementContext context, Func<RunContext, bool> whenRule, IncomingEventConfig incomingEvent)
+        private void InsertTransitions(WorkflowParser.On_event_statementContext context, Func<RunContext, bool> whenRule, IncomingEventConfig incomingEvent, string ruleText)
         {
             var switchs = context.switch_state();
             foreach (var item in switchs)
@@ -448,12 +455,15 @@ namespace Bb.Workflows.Parser
                 if (whenRule != null)
                 {
                     if (s.WhenRule == null)
+                    {
                         s.WhenRule = whenRule;
-
+                        s.WhenRuleText = ruleText;
+                    }
                     else
                     {
                         var r = s.WhenRule;
                         s.WhenRule = (ctx) => whenRule(ctx) && r(ctx);
+                        s.WhenRuleText += " && " + ruleText;
                     }
                 }
                 incomingEvent.AddTransition(s);
@@ -478,7 +488,9 @@ namespace Bb.Workflows.Parser
                 Kind = Constants.PushActionName
             };
 
-            rule = new ResultRuleConfig() { };
+            rule = new ResultRuleConfig()
+            {
+            };
             rule.Actions.Add(resultAction);
             resultActions.Add(("in", rule));
 
@@ -495,6 +507,7 @@ namespace Bb.Workflows.Parser
 
             rule = new ResultRuleConfig()
             {
+                RuleText = $"@IncomingEvent.Name != '{Constants.Events.ExpiredEventName}'",
                 Rule = (ctx) => ctx.IncomingEvent.Name != Constants.Events.ExpiredEventName,
             };
             rule.Actions.Add(resultAction);
@@ -520,19 +533,23 @@ namespace Bb.Workflows.Parser
 
             var t = new TransitionConfig()
             {
-                TargetStateName = (string)VisitKey(context.key()),
+
             };
 
-            var r = new ResultRuleConfig();
-            t.RuleActions.Add(r);
-
             if (context.WHEN() != null)
-                r.Rule = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(context.rule_conditions()));
+            {
+                var conditions = context.rule_conditions();
+                t.WhenRuleText = conditions.GetText();
+                t.WhenRule = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(conditions));
+            }
 
             var executes = context.execute2();
             if (executes != null)
                 foreach (var execute in executes)
                     t.RuleActions.Add((ResultRuleConfig)VisitExecute2(execute));
+
+            if (context.SWITCH() != null)
+                t.TargetStateName = (string)VisitKey(context.key());
 
             return t;
         }
@@ -581,7 +598,11 @@ namespace Bb.Workflows.Parser
 
 
             if (context.WHEN() != null)
-                rule.Rule = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(context.rule_conditions()));
+            {
+                var condition = context.rule_conditions();
+                rule.RuleText = condition.GetText();
+                rule.Rule = (Func<RunContext, bool>)Compile((ExpressionModel)VisitRule_conditions(condition));
+            }
 
             var a = context.execute3();
 

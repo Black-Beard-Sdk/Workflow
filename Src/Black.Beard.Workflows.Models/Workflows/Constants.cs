@@ -22,6 +22,11 @@ namespace Bb.Workflows
             public const string CancelReminderAction = "__cancelReminderAction";
         }
 
+        public static class Properties
+        {
+            public const string WorkflowId = "WorkflowId";
+        }
+
 
     }
 

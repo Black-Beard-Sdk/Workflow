@@ -8,7 +8,7 @@ using System.Text;
 namespace Bb.Workflows.Parser
 {
 
-    public class WorkflowContentHelper
+    public class ContentHelper
     {
 
         /// <summary>

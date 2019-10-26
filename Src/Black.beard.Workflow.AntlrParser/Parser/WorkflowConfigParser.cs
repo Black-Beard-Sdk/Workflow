@@ -130,7 +130,7 @@ namespace Bb.Workflows.Parser
         /// <returns></returns>
         public static StringBuilder LoadContent(string rootSource)
         {
-            StringBuilder result = new StringBuilder(WorkflowContentHelper.LoadContentFromFile(rootSource));
+            StringBuilder result = new StringBuilder(ContentHelper.LoadContentFromFile(rootSource));
             return result;
         }
 

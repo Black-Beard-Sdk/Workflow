@@ -10,10 +10,11 @@ namespace Bb.Workflows
 {
     public class WorkflowEngine
     {
+        private readonly UseResource _resource;
 
         public WorkflowEngine()
         {
-
+            this._resource = new UseResource();
         }
 
         public void EvaluateEvent(string payload)
@@ -35,7 +36,7 @@ namespace Bb.Workflows
 
         private LockProcess Lock(uint crc)
         {
-            return new LockProcess(crc, this.Locker);
+            return new LockProcess(crc, this.Locker, this._resource);
         }
 
         public IWorkflowSerializer Serializer { get; set; }
@@ -52,22 +53,32 @@ namespace Bb.Workflows
         /// </summary>
         public ILockObject Locker { get; set; } = new LockerMemory();
 
+        public bool CanBeRemoved
+        {
+            get
+            {
+                return _resource.Value() == 0;
+            }
+        }
+
         private class LockProcess : IDisposable
         {
 
-            public LockProcess(uint crc, ILockObject locker)
+            public LockProcess(uint crc, ILockObject locker, UseResource res)
             {
                 this._locker = locker;
                 this._crc = crc;
                 Task.Run(() => Unlock());
                 this._locker.Lock(this._crc);
+                this._res = res;
+                this._res.Increment();
             }
 
             private void Unlock()
             {
 
                 var dateMax = WorkflowClock.Now().AddMinutes(5);
-                
+
                 while (WorkflowClock.Now() < dateMax)
                 {
 
@@ -90,7 +101,10 @@ namespace Bb.Workflows
                 if (!disposedValue)
                 {
                     if (disposing)
+                    {
                         this._locker.UnLock(this._crc);
+                        this._res.Decrement();
+                    }
 
                     disposedValue = true;
                 }
@@ -107,7 +121,29 @@ namespace Bb.Workflows
             private bool disposedValue = false; // To detect redundant calls
             private readonly ILockObject _locker;
             private readonly uint _crc;
-        
+            private readonly UseResource _res;
+        }
+
+        private class UseResource
+        {
+
+            public void Increment()
+            {
+                Interlocked.Increment(ref midValueCount);
+            }
+
+            public void Decrement()
+            {
+                Interlocked.Increment(ref midValueCount);
+            }
+
+            public long Value()
+            {
+                return Interlocked.Read(ref midValueCount);
+            }
+
+            private long midValueCount;            
+
         }
 
     }

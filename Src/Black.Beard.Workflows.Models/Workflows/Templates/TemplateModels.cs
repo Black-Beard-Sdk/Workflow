@@ -4,7 +4,8 @@ using System.Linq;
 
 namespace Bb.Workflows.Templates
 {
-    public class TemplateModels
+    
+    public static class TemplateModels
     {
 
         public static Func<ResultAction, DynObject> Reminder = (r) =>

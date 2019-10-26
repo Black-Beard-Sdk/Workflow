@@ -1255,11 +1255,18 @@ namespace Bb.Workflows.Parser
         private RuleDefinitionModel ResolveRule(string key)
         {
 
-            if (!this._rules.TryGetValue(key, out RuleDefinitionModel rule))
+            RuleDefinitionModel rule = ResolveRule_impl(key);
+            if (rule == null)
                 throw new Exceptions.InvalidMethodReferenceException(key);
 
             return rule;
 
+        }
+
+        protected virtual RuleDefinitionModel ResolveRule_impl(string key)
+        {
+            this._rules.TryGetValue(key, out RuleDefinitionModel rule);
+            return rule;
         }
 
         private (Func<RunContext, bool>, string) Compile(ExpressionModel expressionModel)

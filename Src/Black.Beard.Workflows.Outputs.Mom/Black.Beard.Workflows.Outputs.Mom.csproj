@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Black.Beard.Brokers.Contracts" Version="1.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Black.Beard.Workflows.Models\Black.Beard.Workflows.Models.csproj" />
   </ItemGroup>
 

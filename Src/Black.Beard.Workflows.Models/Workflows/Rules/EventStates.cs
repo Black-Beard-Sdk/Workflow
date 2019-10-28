@@ -6,7 +6,7 @@ namespace Bb.Workflows.Rules
     public static class EventStates
     {
 
-        [System.ComponentModel.DisplayName("CountAndEvalEvent")]
+        [System.ComponentModel.DisplayName("CountAndEvalState")]
         [System.ComponentModel.Description("count state type and check have at least specified count")]
         public static bool CountAndEvalState(RunContext ctx, string stateName, int count)
         {

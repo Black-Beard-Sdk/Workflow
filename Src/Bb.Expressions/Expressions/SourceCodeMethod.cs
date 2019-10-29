@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
     public class SourceCodeMethod : SourceCode
     {
@@ -34,15 +34,13 @@ namespace Bb.Workflows.Expresssions
             if (vari != null)
             {
                 if (vari.Instance != arg)
-                    throw new Exception($"parameter {arg.Name} allready exists");
+                    throw new Exceptions.DuplicatedArgumentNameMethodReferenceException($"parameter {arg.Name} already exists");
             }
             else
             {
                 var variable = new Variable() { Name = arg.Name, Instance = arg };
                 this._parameters.Add(variable);
                 this.LastParameter = arg;
-                if (this.GetVar(arg.Name) == null)
-                    this.AddVar(arg.Type, arg.Name);
             }
 
             return this;
@@ -52,7 +50,19 @@ namespace Bb.Workflows.Expresssions
         public ParameterExpression GetParameter(string name)
         {
             var variable = _parameters.GetByName(name);
-            return variable.Instance;
+            return variable?.Instance;
+        }
+
+        public override ParameterExpression GetVar(string name)
+        {
+
+            var variable = base.GetVar(name);
+            
+            if (variable == null)
+                variable = this.GetParameter(name);
+
+            return variable;
+
         }
 
         public Expression<TDelegate> GenerateLambda<TDelegate>()

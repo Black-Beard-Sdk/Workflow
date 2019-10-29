@@ -21,8 +21,8 @@ namespace Bb.Workflows
 
     }
 
-        public class WorkflowProcessor<TContext> : WorkflowProcessor
-        where TContext : RunContext, new()
+    public class WorkflowProcessor<TContext> : WorkflowProcessor
+    where TContext : RunContext, new()
 
     {
 
@@ -136,7 +136,7 @@ namespace Bb.Workflows
 
                 List<Workflow> workflows = LoadExistingWorkflowsByExternalId(@event.ExternalId);
 
-                // if incoming event contains Workflow Id it must be restricted on the specified workflow id
+                // if incoming event contains WorkflowId property it must be restricted on the specified workflowid
                 if (@event.ExtendedDatas.Items.TryGetValue(Constants.Properties.WorkflowId, out DynObject d))
                 {
                     Guid workflowId = Guid.Parse(d.GetValue(null)?.ToString());
@@ -144,9 +144,7 @@ namespace Bb.Workflows
                 }
 
                 foreach (Workflow item in workflows)
-                {
-
-                    if (!CheckAndResolveConfig(item, @event.Uuid, @event.Name, out WorkflowConfig config))
+                    if (CheckAndResolveConfig(item, @event.Uuid, @event.Name, out WorkflowConfig config))
                     {
 
                         var ctx = CreateContext(item, @event);
@@ -156,8 +154,6 @@ namespace Bb.Workflows
                         yield return ctx;
 
                     }
-
-                }
 
             }
 
@@ -427,15 +423,14 @@ namespace Bb.Workflows
             {
                 Serializer = this.Serializer,
             };
+
             context.Set(workflow, @event);
 
-            if (this._contextCreator != null)
-                this._contextCreator(context);
+            this._contextCreator?.Invoke(context);
 
             return context;
 
         }
-
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Diagnostics.DebuggerNonUserCode]

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
     public class LoopStatement : Statement
     {

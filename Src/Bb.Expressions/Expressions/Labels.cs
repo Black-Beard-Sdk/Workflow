@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
 
 
@@ -18,7 +18,7 @@ namespace Bb.Workflows.Expresssions
         {
 
             if (label.Kind != KindLabelEnum.Default && this._labels.Values.Any(c => c.Kind == label.Kind))
-                throw new Exception($"the bloc contains allready label of type {label.Kind.ToString()}");
+                throw new Exceptions.DuplicatedArgumentNameMethodReferenceException($"the bloc contains already label of type {label.Kind.ToString()}");
 
             this._labels.Add(label.Name, label);
 

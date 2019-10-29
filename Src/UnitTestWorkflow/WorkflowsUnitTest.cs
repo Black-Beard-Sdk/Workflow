@@ -301,7 +301,7 @@ namespace UnitTestWorkflow
         {
             var _value = Guid.NewGuid().ToString();
             RunContext ctx = CreateContextForEvaluateArgument();
-            var u = ExpressionHelper.GetAccessors<RunContext>("Event.ExternalId");
+            var u = ExpressionDynobjectExtension.GetAccessors<RunContext>("Event.ExternalId");
             var v = u(ctx);
             Assert.AreEqual(v, ctx.Event.ExternalId);
         }
@@ -312,7 +312,7 @@ namespace UnitTestWorkflow
             var _value = Guid.NewGuid().ToString();
             RunContext ctx = CreateContextForEvaluateArgument();
             ctx.Event.ExtendedDatas.Items.Add("SiteIdentifier", new DynObject().SetValue("112233"));
-            var u = ExpressionHelper.GetAccessors<RunContext>("Event.SiteIdentifier");
+            var u = ExpressionDynobjectExtension.GetAccessors<RunContext>("Event.SiteIdentifier");
             var v = u(ctx);
             Assert.AreEqual(v, "112233");
         }

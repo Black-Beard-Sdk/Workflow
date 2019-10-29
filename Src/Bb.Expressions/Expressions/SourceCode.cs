@@ -5,12 +5,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
     public class SourceCode : List<Statement>
     {
 
-        internal SourceCode(SourceCode parent = null)
+        public SourceCode(SourceCode parent = null)
         {
             this._parent = parent;
         }
@@ -40,12 +40,23 @@ namespace Bb.Workflows.Expresssions
 
         #region variables
 
+        public SourceCode AddVarIfNotExists(ParameterExpression parameter)
+        {
+
+            var vari = this.GetVar(parameter.Name);
+            if (vari == null)
+                this.AddVar(parameter);
+
+            return this;
+
+        }
+
         public ParameterExpression AddVarIfNotExists(Type type, string name)
         {
 
-            var vari = this._variables.GetByName(name);
-            if (vari != null)
-                return vari.Instance;
+            var variable = this.GetVar(name);
+            if (variable != null)
+                return variable;
 
             if (string.IsNullOrEmpty(name))
                 name = this._variables.GetNewName();
@@ -54,17 +65,6 @@ namespace Bb.Workflows.Expresssions
             this.AddVar(instance);
 
             return instance;
-
-        }
-
-        public SourceCode AddVarIfNotExists(ParameterExpression parameter)
-        {
-
-            var vari = this._variables.GetByName(parameter.Name);
-            if (vari == null)
-                this.AddVar(parameter);
-
-            return this;
 
         }
 
@@ -87,7 +87,7 @@ namespace Bb.Workflows.Expresssions
             if (vari != null)
             {
                 if (vari.Instance != arg)
-                    throw new Exception($"parameter {arg.Name} allready exists");
+                    throw new Exceptions.DuplicatedArgumentNameMethodReferenceException($"parameter {arg.Name} already exists");
             }
             else
             {
@@ -100,10 +100,19 @@ namespace Bb.Workflows.Expresssions
 
         }
 
-        public ParameterExpression GetVar(string name)
+        public virtual ParameterExpression GetVar(string name)
         {
             var variable = _variables.GetByName(name);
-            return variable?.Instance;
+            if (variable == null)
+            {
+                if (_parent != null)
+                    return _parent.GetVar(name);
+            }
+            else
+                return variable.Instance;
+
+            return null;
+
         }
 
         #endregion variables
@@ -142,7 +151,7 @@ namespace Bb.Workflows.Expresssions
                 label = _parent.GetLabelImpl(kind);
 
             if (label == null)
-                throw new Exception($"no label of {kind.ToString()} defined");
+                throw new Exceptions.InvalidArgumentNameMethodReferenceException($"no label of {kind.ToString()} defined");
 
             return label;
 
@@ -194,13 +203,75 @@ namespace Bb.Workflows.Expresssions
             return this;
         }
 
-
         #region Exceptions
 
+
+        public SourceCode Try(Expression e, params CatchStatement[] catchs)
+        {
+            return Try(new SourceCode(this).Add(e), catchs);
+        }
+
+        public SourceCode Try(SourceCode self, params CatchStatement[] catchs)
+        {
+
+            self._parent = this;
+
+            var tryStatement = new TryStatement()
+            {
+                Try = self,
+            };
+
+            foreach (var item in catchs)
+            {
+                item.Body._parent = this;
+                tryStatement.Catchs.Add(item);
+            }
+
+            this.Add(tryStatement);
+
+            return this;
+
+        }
+
+        public SourceCode Try(SourceCode self, SourceCode @finally, params CatchStatement[] catchs)
+        {
+
+            self._parent = this;
+            @finally._parent = this;
+
+            var tryStatement = new TryStatement()
+            {
+                Try = self,
+                Finally = @finally
+            };
+
+            foreach (var item in catchs)
+            {
+                item.Body._parent = this;
+                tryStatement.Catchs.Add(item);
+            }
+
+            this.Add(tryStatement);
+
+            return this;
+
+        }
 
         public SourceCode Throw(Type type, params Expression[] args)
         {
             Add(type.Throw(args));
+            return this;
+        }
+
+        public SourceCode Throw(ParameterExpression arg)
+        {
+            Add(arg);
+            return this;
+        }
+
+        public SourceCode ReThrow()
+        {
+            Add(Expression.Rethrow());
             return this;
         }
 
@@ -248,7 +319,6 @@ namespace Bb.Workflows.Expresssions
 
             if (this.Count == 1)
                 expression = this[0].GetExpression(variableParent);
-
             else
                 expression = GetBlock(variableParent);
 

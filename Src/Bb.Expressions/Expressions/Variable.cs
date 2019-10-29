@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
     public class Variable
     {

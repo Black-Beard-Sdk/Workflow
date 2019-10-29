@@ -5,7 +5,6 @@ using System.Text;
 namespace Bb.Workflows.Exceptions
 {
 
-
     [Serializable]
     public class ResolutionArgumentException : Exception
     {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
     public class TryStatement : Statement
     {
@@ -31,9 +31,14 @@ namespace Bb.Workflows.Expresssions
                 CatchBlock c;
                 if (@catch.Parameter != null)
                 {
+                    variableParent.Add(@catch.Parameter.Name);
+
                     @catch.Body.AddVarIfNotExists(@catch.Parameter);
                     var body = @catch.GetExpression(variableParent);
                     c = Expression.Catch(@catch.Parameter, body);
+
+                    variableParent.Remove(@catch.Parameter.Name);
+
                 }
                 else
                 {
@@ -42,7 +47,6 @@ namespace Bb.Workflows.Expresssions
                 }
                 _catchs.Add(c);
             }
-
 
             if (Finally != null)
                     expressionFinaly = Finally.GetExpression(new HashSet<string>(variableParent));

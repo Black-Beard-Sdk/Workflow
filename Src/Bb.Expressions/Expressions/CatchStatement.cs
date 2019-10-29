@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
+
     public class CatchStatement : Statement
     {
 
@@ -11,6 +12,7 @@ namespace Bb.Workflows.Expresssions
         {
             this.Body = new SourceCode();
         }
+
         public SourceCode Body { get; set; }
 
         public Type TypeToCatch { get; set; }

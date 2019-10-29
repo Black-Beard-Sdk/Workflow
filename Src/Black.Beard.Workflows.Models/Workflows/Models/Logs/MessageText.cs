@@ -56,7 +56,7 @@ namespace Bb.Workflows.Models.Logs
 
         public override string ToString()
         {
-            var sb = new StringBuilder("{ ");
+            var sb = new StringBuilder(3000);
             ToString_Impl(sb);
             return sb.ToString();
         }

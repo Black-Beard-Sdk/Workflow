@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Bb.Workflows.Expresssions
+namespace Bb.Expresssions
 {
 
     public class ConditionalStatement : Statement

@@ -20,17 +20,21 @@ namespace Bb.Workflows
         public void EvaluateEvent(string payload)
         {
 
-            var msg = this.Serializer.Unserialize(payload);
+            IncomingEvent msg;
+            try
+            {
+                msg = this.Serializer.Unserialize(payload);
+            }
+            catch (Exception e)
+            {
+                throw new Exceptions.InvalidIncomingEventFormatException("Invalid format", e);
+            }
 
             var key = ThreadSafeKey(msg);
             uint crc = Crc32.Calculate(key);
 
             using (var l = Lock(crc))
-            {
-
                 Processor.EvaluateEvent(msg);
-
-            }
 
         }
 
@@ -142,7 +146,7 @@ namespace Bb.Workflows
                 return Interlocked.Read(ref midValueCount);
             }
 
-            private long midValueCount;            
+            private long midValueCount;
 
         }
 

@@ -13,6 +13,7 @@ using Bb.Workflows.Parser.Models;
 using System.Reflection;
 using System.Linq.Expressions;
 using Bb.Workflows.Expresssions;
+using Bb.Expresssions;
 
 namespace Bb.Workflows.Parser
 {
@@ -1231,7 +1232,7 @@ namespace Bb.Workflows.Parser
                 func = ExpressionHelper.GetConstant<object>(v);
             }
             else if (value.StartsWith("'@"))
-                func = ExpressionHelper.GetAccessors<RunContext>(value.Substring(1));
+                func = ExpressionDynobjectExtension.GetAccessors<RunContext>(value.Substring(1));
 
             else
             {

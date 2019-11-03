@@ -4,35 +4,8 @@ using Bb.Workflows.Models.Messages;
 
 namespace Bb.Workflows.Converters
 {
-    internal static class DynObjectSerializer
+    public static class DynObjectSerializer
     {
-
-
-        //public static JObject Serialize(this ResultAction value)
-        //{
-
-        //    JObject result = new JObject
-        //    {
-        //        new JProperty(nameof(value.Uuid), new JValue(value.Uuid)),
-        //        new JProperty(nameof(value.EventDate), new JValue(value.EventDate)),
-        //        new JProperty(nameof(value.Label), new JValue(value.Label)),
-        //        new JProperty(nameof(value.Name), new JValue(value.Name)),
-        //    };
-
-        //    JArray j = new JArray();
-
-        //    foreach (var item in value.Arguments)
-        //    {
-        //        var v = item.Value.Serialize();
-        //        if (v != null)
-        //            j.Add(new JProperty(nameof(item.Key), new JValue(v)));
-        //    }
-
-        //    result.Add(new JProperty("Arguments", j));
-
-        //    return result;
-
-        //}
 
         public static JToken Serialize(this DynObject value)
         {

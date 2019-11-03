@@ -8,7 +8,6 @@ namespace Bb.Workflows.Models
     public class Workflow
     {
 
-
         public Guid Uuid { get; set; }
 
         public string ExternalId { get; set; }
@@ -33,6 +32,8 @@ namespace Bb.Workflows.Models
 
         public bool Recursive { get; internal set; }
 
+        public ChangeEnum Change { get; set; }
+        
         public bool GetEvent(Guid uuid, out Event e)
         {
 
@@ -44,6 +45,15 @@ namespace Bb.Workflows.Models
         }
 
         private Dictionary<Guid, Event> _e;
+
+    }
+
+    public enum ChangeEnum
+    {
+
+        None,
+        New,
+        Updated,
 
     }
 

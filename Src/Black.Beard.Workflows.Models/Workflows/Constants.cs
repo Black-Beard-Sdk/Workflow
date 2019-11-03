@@ -12,12 +12,15 @@ namespace Bb.Workflows
         public const string PushActionName = "$_push";
         public const string PushReminder = "$_reminder";
 
+        public const string EventId = "EventId";
+        public const string TaskUuid = "TaskId";
 
         // 
 
 
         public static class Events
         {
+            public const string ResultActionName = "$_result";
             public const string ExpiredEventName = "__expired";
             public const string CancelReminderAction = "__cancelReminderAction";
         }

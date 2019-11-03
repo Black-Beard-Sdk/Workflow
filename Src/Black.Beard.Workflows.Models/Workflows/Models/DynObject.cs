@@ -110,7 +110,7 @@ namespace Bb.Workflows.Models
             return this;
         }
 
-        public DynObject Add(string key, IDictionary<string, DynObject> arguments)
+        public DynObject AddSub(string key, IDictionary<string, DynObject> arguments)
         {
             var arg = new DynObject();
             this.Items.Add(key, arg);
@@ -119,7 +119,7 @@ namespace Bb.Workflows.Models
                 foreach (var item in arguments)
                     arg.Add(item.Key, item.Value);
             }
-            return this;
+            return arg;
         }
 
         public DynObject Add(IDictionary<string, DynObject> arguments)

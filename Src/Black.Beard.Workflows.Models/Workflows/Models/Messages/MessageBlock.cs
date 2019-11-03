@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Bb.Workflows.Models.Messages
 {
@@ -12,6 +13,17 @@ namespace Bb.Workflows.Models.Messages
         public override T Accept<T>(MessageVisitor<T> visitor)
         {
             return visitor.VisitMessageBlock(this);
+        }
+
+        internal MessageBlock Add(string name, object value)
+        {
+            return Add(new MessageProperty() { Name = name, Value = new MessageValue() { Value = value } });
+        }
+
+        internal MessageBlock Add(MessageProperty messageProperty)
+        {
+            this.Items.Add(messageProperty);
+            return this;
         }
 
     }

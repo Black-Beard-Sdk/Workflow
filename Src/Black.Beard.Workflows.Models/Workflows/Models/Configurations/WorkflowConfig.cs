@@ -66,6 +66,10 @@ namespace Bb.Workflows.Models.Configurations
         private void BuildAutorizedEvents()
         {
 
+
+            this.DeclaredEvents.Add(Constants.Events.ResultActionName, GetEventDefinition(Constants.Events.ResultActionName));
+
+
             foreach (var item in this.Initializers)
                 if (!this.DeclaredEvents.ContainsKey(item.Key))
                     this.DeclaredEvents.Add(item.Key, GetEventDefinition(item.Key));
@@ -82,6 +86,10 @@ namespace Bb.Workflows.Models.Configurations
             var label = string.Empty;
             switch (key)
             {
+
+                case Constants.Events.ResultActionName:
+                    label = "technical result of execution of an order pushed by the current workflow";
+                    break;
 
                 case Constants.Events.ExpiredEventName:
                     label = "Expiration of the state";

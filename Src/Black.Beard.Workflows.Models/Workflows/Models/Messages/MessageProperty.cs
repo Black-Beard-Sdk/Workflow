@@ -2,7 +2,7 @@
 
 namespace Bb.Workflows.Models.Messages
 {
-    [DebuggerDisplay("{Name} : {Value}")]
+    [DebuggerDisplay("'{Name}' : {Value}")]
     public class MessageProperty : Message
     {
 

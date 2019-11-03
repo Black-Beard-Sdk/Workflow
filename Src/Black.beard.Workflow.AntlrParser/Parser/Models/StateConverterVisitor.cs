@@ -169,12 +169,12 @@ namespace Bb.Workflows.Parser.Models
         /// </summary>
         /// <param name="argumentContext"></param>
         /// <returns></returns>
-        public Expression GetCallLogAction(MethodInfo method, string rulename, params Expression[] arguments)
+        public Expression GetCallLogAction(MethodInfo methodLog, string rulename, params Expression[] arguments)
         {
 
             // build custom method
             List<Expression> _args = new List<Expression>(arguments.Length);
-            var parameters = method.GetParameters()
+            var parameters = methodLog.GetParameters()
                 .ToArray();
 
             // Build log method

@@ -7,13 +7,12 @@ namespace Bb.Workflows.Models
 
     public class PushedAction
     {
-
+        
 
         public PushedAction()
         {
 
         }
-
 
 
         public Guid Uuid { get; set; }
@@ -24,8 +23,10 @@ namespace Bb.Workflows.Models
 
         public MessageRaw ExecuteMessage { get; set; } 
         
-        public MessageRaw ResultMessage { get; set; } 
-        
+        public MessageRaw ResultMessage { get; set; }
+
+
+        public ChangeEnum Change { get; set; }
 
 
         public MessageRaw CancelMessage { get; set; } 

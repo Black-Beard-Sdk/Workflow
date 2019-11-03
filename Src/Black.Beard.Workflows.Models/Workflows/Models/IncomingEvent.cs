@@ -32,12 +32,11 @@ namespace Bb.Workflows.Models
             var result = new Event()
             {
                 Uuid = Guid.NewGuid(),
-                ExternalId = this.ExternalId,
                 EventDate = this.EventDate,
                 Name = this.Name,
                 CreationDate = WorkflowClock.Now(),
                 ExtendedDatas = ExtendedDatas.Clone(),
-                
+                Change = ChangeEnum.New,
             };
 
             return result;

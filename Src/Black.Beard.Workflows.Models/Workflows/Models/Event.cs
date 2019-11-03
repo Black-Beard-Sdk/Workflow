@@ -12,7 +12,7 @@ namespace Bb.Workflows.Models
 
         public string Name { get; set; }
 
-        public string ExternalId { get; set; }
+        //public string ExternalId { get; set; }
 
         public DateTimeOffset CreationDate { get; set; }
 
@@ -23,6 +23,8 @@ namespace Bb.Workflows.Models
         public string FromState { get; set; }
 
         public string ToState { get; set; }
+
+        public ChangeEnum Change { get; set; }
 
         public IList<PushedAction> Actions { get; set; } = new List<PushedAction>();
 

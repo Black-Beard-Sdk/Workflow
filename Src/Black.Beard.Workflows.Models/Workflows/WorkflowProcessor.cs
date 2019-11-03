@@ -23,13 +23,17 @@ namespace Bb.Workflows
 
     public class WorkflowProcessor<TContext> : WorkflowProcessor
     where TContext : RunContext, new()
-
     {
 
         public WorkflowProcessor(WorkflowsConfig config, Action<TContext> contextCreator = null)
         {
             this._config = config;
             this._contextCreator = contextCreator;
+
+            // Build a responsability chain for evaluate where the event must be intégrated in the tree model
+            this.AppendEvent = new ResponsabilityResultAction<TContext>(
+                new ResponsabilityEventStandard<TContext>()
+                );
         }
 
         public TemplateRepository Templates { get; set; } = new TemplateRepository();
@@ -40,6 +44,7 @@ namespace Bb.Workflows
 
         public Func<OutputAction> OutputActions { get; set; }
 
+        public IServiceProvider Services { get; set; }
 
         public override void EvaluateEvent(IncomingEvent @event)
         {
@@ -50,12 +55,17 @@ namespace Bb.Workflows
             if (OutputActions == null)
                 throw new ArgumentNullException(nameof(OutputActions));
 
-            List<TContext> contexts = GetExistingContexts(@event).ToList();
+            List<TContext> contexts = this.GetExistingContexts(@event).ToList();
             var items = contexts.ToLookup(c => c.Workflow.WorkflowName);
-            contexts.AddRange(EvaluateNewWorkflow(@event, items));
+            contexts.AddRange(this.EvaluateNewWorkflow(@event, items));
 
             if (contexts.Any())
             {
+
+                // Responsability chain for evaluate where in the tree, the event must to be added 
+                foreach (var item in contexts)
+                    this.AppendEvent.Eval(item);
+
                 TranslateActions(contexts);
 
                 var act = OutputActions();
@@ -73,8 +83,10 @@ namespace Bb.Workflows
 
         }
 
+
         private void TranslateActions(List<TContext> contexts)
         {
+
             foreach (var context in contexts)
                 foreach (ResultAction action in context.Actions)
                 {
@@ -119,6 +131,7 @@ namespace Bb.Workflows
                             Header = new MessageHeader(header) { },
                             Body = (MessageBlock)body.Resolve(context),
                         },
+                        Change = ChangeEnum.New,
                     };
 
                     action.Event.Actions.Add(t);
@@ -128,7 +141,7 @@ namespace Bb.Workflows
 
         public Func<string, List<Workflow>> LoadExistingWorkflowsByExternalId { get; set; }
 
-        private IEnumerable<TContext> GetExistingContexts(IncomingEvent @event)
+        internal IEnumerable<TContext> GetExistingContexts(IncomingEvent @event)
         {
 
             if (LoadExistingWorkflowsByExternalId != null)
@@ -148,7 +161,7 @@ namespace Bb.Workflows
                     {
 
                         var ctx = CreateContext(item, @event);
-                        ctx.Event.ToState = ctx.Event.FromState = ctx.PreviousEvent.ToState;
+                        ctx.Event.ToState = ctx.Event.FromState = ctx.Workflow.CurrentState;
                         EvaluateEventInCurrentWorkflow(config, ctx);
 
                         yield return ctx;
@@ -188,7 +201,7 @@ namespace Bb.Workflows
         }
 
 
-        private List<TContext> EvaluateNewWorkflow(IncomingEvent @event, ILookup<string, TContext> existingWorkflows)
+        internal List<TContext> EvaluateNewWorkflow(IncomingEvent @event, ILookup<string, TContext> existingWorkflows)
         {
 
             var configs = this._config.Get(@event).ToList();
@@ -255,6 +268,7 @@ namespace Bb.Workflows
                     LastUpdateDate = WorkflowClock.Now(),
                     ExtendedDatas = @event.ExtendedDatas.Clone(),
                     Concurency = 1,
+                    Change = ChangeEnum.New,
                 };
 
                 ctx = CreateContext(wrk, @event);
@@ -443,6 +457,8 @@ namespace Bb.Workflows
 
         private readonly WorkflowsConfig _config;
         private readonly Action<TContext> _contextCreator;
+        private readonly Responsability<TContext> AppendEvent;
+    
     }
 
 }

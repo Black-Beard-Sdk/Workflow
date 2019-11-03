@@ -26,7 +26,6 @@ namespace Bb.Workflows.Models
             {
                 this.Workflow = workflow;
                 this.PreviousEvent = this.Workflow.LastEvent;
-                this.Workflow.Events.Add(this.Event);
             }
 
             return this;

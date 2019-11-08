@@ -443,7 +443,7 @@ namespace Bb.Workflows.Parser
                 int delay = (int)VisitDelay(context.delay());
                 whenRule = (ctx) =>
                 {
-                    var i = ctx.IncomingEvent.ExtendedDatas["CurrentState"];
+                    var i = ctx.IncomingEvent.ExtendedDatas()["CurrentState"];
                     if (i.GetValue == null)
                         return false;
                     var j = i.GetValue(ctx)?.ToString();

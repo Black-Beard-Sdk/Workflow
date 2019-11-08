@@ -48,9 +48,14 @@ namespace UnitTestWorkflow
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
 
-            var processor = new WorkflowProcessor<RunContext>(config)
+            var factory = new WorkflowFactory<RunContext>(null, null)
             {
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                Serializer = new PartialJsonWorkflowSerializer()
+            };
+
+            var processor = new WorkflowProcessor<RunContext>(config, factory)
+            {
+                OutputActions = () => CreateOutput(new PartialJsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,
             };
@@ -101,11 +106,15 @@ namespace UnitTestWorkflow
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
 
+            var factory = new WorkflowFactory<RunContext>(null, null)
+            {
+                Serializer = new PartialJsonWorkflowSerializer()
+            };
 
-            var processor = new WorkflowProcessor<RunContext>(config)
+            var processor = new WorkflowProcessor<RunContext>(config, factory)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                OutputActions = () => CreateOutput(new PartialJsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,
             };
@@ -178,10 +187,14 @@ namespace UnitTestWorkflow
             {
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
-            var processor = new WorkflowProcessor<RunContext>(config)
+            var factory = new WorkflowFactory<RunContext>(null, null)
+            {
+                Serializer = new PartialJsonWorkflowSerializer()
+            };
+            var processor = new WorkflowProcessor<RunContext>(config, factory)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                OutputActions = () => CreateOutput(new PartialJsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,
             };
@@ -246,11 +259,14 @@ namespace UnitTestWorkflow
             {
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value)
             };
-
-            var processor = new WorkflowProcessor<RunContext>(config)
+            var factory = new WorkflowFactory<RunContext>(null, null)
+            {
+                Serializer = new PartialJsonWorkflowSerializer()
+            };
+            var processor = new WorkflowProcessor<RunContext>(config, factory)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
-                OutputActions = () => CreateOutput(new JsonWorkflowSerializer(), storage),
+                OutputActions = () => CreateOutput(new PartialJsonWorkflowSerializer(), storage),
                 Templates = template,
                 Metadatas = metadatas,
             };
@@ -301,9 +317,9 @@ namespace UnitTestWorkflow
         {
             var _value = Guid.NewGuid().ToString();
             RunContext ctx = CreateContextForEvaluateArgument();
-            var u = ExpressionDynobjectExtension.GetAccessors<RunContext>("Event.ExternalId");
+            var u = ExpressionDynobjectExtension.GetAccessors<RunContext>("Workflow.ExternalId");
             var v = u(ctx);
-            Assert.AreEqual(v, ctx.Event.ExternalId);
+            Assert.AreEqual(v, ctx.Workflow.ExternalId);
         }
 
         [TestMethod]
@@ -311,7 +327,7 @@ namespace UnitTestWorkflow
         {
             var _value = Guid.NewGuid().ToString();
             RunContext ctx = CreateContextForEvaluateArgument();
-            ctx.Event.ExtendedDatas.Items.Add("SiteIdentifier", new DynObject().SetValue("112233"));
+            ctx.Event.ExtendedDatas().Items.Add("SiteIdentifier", new DynObject().SetValue("112233"));
             var u = ExpressionDynobjectExtension.GetAccessors<RunContext>("Event.SiteIdentifier");
             var v = u(ctx);
             Assert.AreEqual(v, "112233");
@@ -319,6 +335,12 @@ namespace UnitTestWorkflow
 
         private static RunContext CreateContextForEvaluateArgument()
         {
+
+            var factory = new WorkflowFactory<RunContext>(null, null)
+            {
+                Serializer = new PartialJsonWorkflowSerializer()
+            };
+
             var ev = new IncomingEvent()
             {
                 Name = "evnt1",
@@ -328,17 +350,14 @@ namespace UnitTestWorkflow
                 CreationDate = WorkflowClock.Now(),
             };
 
-            var wrk = new Workflow()
-            {
-                Uuid = Guid.NewGuid(),
-                WorkflowName = "Test",
-                Version = 1,
-                ExternalId = ev.ExternalId,
-                CreationDate = WorkflowClock.Now(),
-                LastUpdateDate = WorkflowClock.Now(),
-            };
+            var wrk = factory.CreateNewWorkflow(
+                "Test",
+                1,
+                ev.ExternalId, 
+                new DynObject()
+            );
 
-            RunContext ctx = new RunContext().Set(wrk, ev);
+            RunContext ctx = new RunContext().Set(wrk, ev, factory);
 
             return ctx;
 

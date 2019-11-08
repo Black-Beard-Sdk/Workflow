@@ -26,7 +26,7 @@ namespace UnitTestWorkflow
 
             Assert.AreEqual(config.Version, 2);
             Assert.AreEqual(config.Concurrency, 1);
-            Assert.AreEqual(config.DeclaredEvents.Count, 3);
+            Assert.AreEqual(config.DeclaredEvents.Count, 4);
 
             Assert.AreEqual(config.Initializers.Count, 1);
 
@@ -238,13 +238,18 @@ namespace UnitTestWorkflow
                 DefaultAction = MetadataModels.DefaultAction.ToDictionary(c => c.Key, c => c.Value),
             };
 
-            var serializer = new JsonWorkflowSerializer();
+            var serializer = new PartialJsonWorkflowSerializer();
 
             WorkflowsConfig configs = new WorkflowsConfig()
                 .AddDocument(GetConfig(configText))
                 ;
 
-            var processor = new WorkflowProcessor<RunContext>(configs)
+            var factory = new WorkflowFactory<RunContext>(null, null)
+            {
+                Serializer = serializer,
+            };
+
+            var processor = new WorkflowProcessor<RunContext>(configs, factory)
             {
                 LoadExistingWorkflowsByExternalId = (key) => storage.GetBy<Workflow, string>(key, c => c.ExternalId).ToList(),
                 OutputActions = () => CreateOutput(serializer, storage),
@@ -252,11 +257,8 @@ namespace UnitTestWorkflow
                 Metadatas = metadatas,
             };
 
-            
-
             WorkflowEngine engine = new WorkflowEngine()
             {
-                Serializer = serializer,
                 Processor = processor,
             };
 
@@ -295,7 +297,7 @@ namespace UnitTestWorkflow
        
         public static bool IsMajor(RunContext ctx, int agemin)
         {
-            var p = ctx.IncomingEvent.ExtendedDatas["Age"];
+            var p = ctx.IncomingEvent.ExtendedDatas()["Age"];
             if (p == null || p == DynObject.None)
                 return false;
             var value = p.ValueAs<int>(ctx);
@@ -328,14 +330,14 @@ namespace UnitTestWorkflow
     DEFINE CONST     agemin 18                  'min for been major';
 
     INITIALIZE WORKFLOW
-        ON EVENT Event1 WHEN NOT IsEmpty(text = @Event.ExternalId) 
+        ON EVENT Event1 WHEN NOT IsEmpty(text = @Workflow.ExternalId) 
             SWITCH State1
 
     DEFINE STATE State1                         'state 1'
         ON ENTER STATE 
             WHEN IsMajor(agemin = agemin)
-                EXECUTE Cut(key = @Event.ExternalId)
-                     -- Cut(key = @Event.ExternalId)
+                EXECUTE Cut(key = @Workflow.ExternalId)
+                     -- Cut(key = @Workflow.ExternalId)
                 STORE   (Status = 'InProgress')           
                      -- (Status = 'InProgress')           
 
@@ -375,14 +377,14 @@ namespace UnitTestWorkflow
     DEFINE CONST     agemin 18                  'min for been major';
 
     INITIALIZE WORKFLOW
-        ON EVENT Event1 WHEN (NOT IsEmpty(text = @Event.ExternalId)) 
+        ON EVENT Event1 WHEN (NOT IsEmpty(text = @Workflow.ExternalId)) 
             RECURSIVE SWITCH State1
 
     DEFINE STATE State1                         'state 1'
         ON ENTER STATE 
             WHEN IsMajor(agemin = agemin)
-                EXECUTE Cut(key = @Event.ExternalId)
-                     -- Cut(key = @Event.ExternalId)
+                EXECUTE Cut(key = @Workflow.ExternalId)
+                     -- Cut(key = @Workflow.ExternalId)
                 STORE   (Status = 'InProgress')           
                      -- (Status = 'InProgress')           
 

@@ -34,7 +34,7 @@ namespace Bb.Workflows.Models.Configurations
             if (_evaluateFilter == null)
                 BuildWorkflow();
 
-            RunContext ctx = new RunContext().Set(null, @event);
+            RunContext ctx = new RunContext().Set(null, @event, null);
 
             return _evaluateFilter(ctx);
 
@@ -141,7 +141,7 @@ namespace Bb.Workflows.Models.Configurations
             var check = typeof(DynObject).GetMethod("Check");
             var result = Expression.Variable(typeof(bool), "result");
             var property1 = typeof(RunContext).GetProperty("IncomingEvent");
-            var property2 = typeof(IncomingEvent).GetProperty("ExtendedDatas");
+            var property2 = typeof(IncomingEvent).GetMethod("ExtendedDatas");
 
             var _end = Expression.Label("end");
 
@@ -151,7 +151,7 @@ namespace Bb.Workflows.Models.Configurations
 
             foreach (var filter in this.Filters)
             {
-                var _property = Expression.Property( Expression.Property(item, property1), property2);
+                var _property = Expression.Call(Expression.Property(item, property1), property2);
                 var a1 = Expression.Call(_property, check, Expression.Constant(filter.Key), Expression.Constant(filter.Value), item);
                 var i = Expression.IfThen(Expression.Not(a1), Expression.Block(Expression.Assign(result, Expression.Constant(false)), Expression.Goto(_end)));
                 blk.Add(i);

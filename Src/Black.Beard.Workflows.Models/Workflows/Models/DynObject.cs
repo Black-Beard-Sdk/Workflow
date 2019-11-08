@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Bb.ComponentModel;
+using Bb.ComponentModel.Accessors;
 using Bb.Workflows.Converters;
 using Bb.Workflows.Models.Messages;
 
@@ -85,6 +87,18 @@ namespace Bb.Workflows.Models
             else
                 this.Items.Add(key, new DynObject() { GetValue = value });
             return this;
+        }
+
+        public DynObject Apply(Action<DynObject> action)
+        {
+
+            action(this);
+
+            foreach (var item in this.Items)
+                item.Value.Apply(action);
+
+            return this;
+
         }
 
         internal DynObject AddDefaultValues()
@@ -180,7 +194,21 @@ namespace Bb.Workflows.Models
 
         }
 
+        //public void MergeToObject(IExtendedDatas instance, RunContext ctx = null)
+        //{
 
+        //    var properties = TypeDiscovery.Instance.GetProperties(instance.GetType());
+
+        //    foreach (var item in this.Items)
+        //        if (properties.TryGetValue(item.Key, out AccessorItem acc))
+        //        {
+        //            //acc.Type
+        //            var txt = item.Value.Serialize(ctx);
+        //        }
+        //        else
+        //            instance.ExtendedDatas.Add(item.Key, item.Value.Clone());
+
+        //}
 
         public DynObject Merge(DynObject o)
         {
@@ -230,16 +258,16 @@ namespace Bb.Workflows.Models
             }
         }
 
-        public object GetWithPath(Queue<string> properties, RunContext ctx)
+        public object GetWithPath(Queue<string> properties, RunContext ctx, string fullpath)
         {
 
             if (properties.Count > 0)
             {
                 string propertyName = properties.Dequeue();
                 if (Items.TryGetValue(propertyName, out DynObject d))
-                    return d.GetWithPath(properties, ctx);
+                    return d.GetWithPath(properties, ctx, fullpath);
                 else
-                    throw new Exceptions.ResolutionArgumentException(propertyName);
+                    throw new Exceptions.ResolutionArgumentException($"missing key {propertyName} in path {fullpath}");
             }
 
             return GetValue(ctx);
@@ -280,81 +308,80 @@ namespace Bb.Workflows.Models
 
         }
 
-        //public StringBuilder Serialize(RunContext ctx)
-        //{
+        public StringBuilder Serialize(RunContext ctx)
+        {
 
-        //    StringBuilder sb = new StringBuilder(1000);
+            StringBuilder sb = new StringBuilder(1000);
 
-        //    if (IsArray)
-        //        sb.Append("[");
-        //    else
-        //        sb.Append("{");
+            if (IsArray)
+                sb.Append("[");
+            else
+                sb.Append("{");
 
-        //    Serialize(ctx, sb);
+            Serialize(ctx, sb);
 
-        //    if (IsArray)
-        //        sb.Append("]");
-        //    else
-        //        sb.Append("}");
+            if (IsArray)
+                sb.Append("]");
+            else
+                sb.Append("}");
 
-        //    return sb;
-        //}
+            return sb;
+        }
 
-        //private void Serialize(RunContext ctx, StringBuilder sb)
-        //{
+        private void Serialize(RunContext ctx, StringBuilder sb)
+        {
 
-        //    string comma = string.Empty;
+            string comma = string.Empty;
 
-        //    if (GetValue != null)
-        //    {
+            if (GetValue != null)
+            {
 
-        //        var value = GetValue(ctx);
+                var value = GetValue(ctx);
 
-        //        if (value is string)
-        //        {
-        //            sb.Append(@"""");
-        //            sb.Append(value);
-        //            sb.Append(@"""");
-        //        }
-        //        else
-        //            sb.Append(value);
+                if (value is string)
+                {
+                    sb.Append(@"""");
+                    sb.Append(value);
+                    sb.Append(@"""");
+                }
+                else
+                    sb.Append(value);
 
-        //    }
-        //    else
-        //    {
+            }
+            else
+            {
 
-        //        if (IsArray)
-        //            sb.Append("[");
-        //        else
-        //            sb.Append("{");
-
-
-        //        foreach (var item in Items)
-        //        {
-
-        //            sb.Append(comma);
-
-        //            if (!IsArray)
-        //            {
-        //                sb.Append(@"""");
-        //                sb.Append(item.Key);
-        //                sb.Append(@""" : ");
-        //            }
-
-        //            item.Value.Serialize(ctx, sb);
-
-        //            comma = ", ";
-        //        }
-
-        //        if (IsArray)
-        //            sb.Append("]");
-        //        else
-        //            sb.Append("}");
-
-        //    }
+                if (IsArray)
+                    sb.Append("[");
+                else
+                    sb.Append("{");
 
 
-        //}
+                foreach (var item in Items)
+                {
+
+                    sb.Append(comma);
+
+                    if (!IsArray)
+                    {
+                        sb.Append(@"""");
+                        sb.Append(item.Key);
+                        sb.Append(@""" : ");
+                    }
+
+                    item.Value.Serialize(ctx, sb);
+
+                    comma = ", ";
+                }
+
+                if (IsArray)
+                    sb.Append("]");
+                else
+                    sb.Append("}");
+
+            }
+
+        }
 
         public static DynObject None = new DynObject();
 

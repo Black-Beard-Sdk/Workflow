@@ -27,10 +27,10 @@ namespace Bb.Workflows.Outputs
                 var key = item.Arguments["key"].GetValue(ctx).ToString();
                 var value = item.Arguments["value"].GetValue(ctx).ToString();
 
-                if (!ctx.Workflow.ExtendedDatas.ContainsKey(key))
-                    ctx.Workflow.ExtendedDatas.Items.Add(key, new DynObject().SetValue(value));
+                if (!ctx.Workflow.ExtendedDatas().ContainsKey(key))
+                    ctx.Workflow.ExtendedDatas().Items.Add(key, new DynObject().SetValue(value));
                 else
-                    ctx.Workflow.ExtendedDatas.Items[key].SetValue(value);              
+                    ctx.Workflow.ExtendedDatas().Items[key].SetValue(value);              
 
             }
 

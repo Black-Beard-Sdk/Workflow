@@ -5,7 +5,7 @@ namespace Bb.Workflows.Models
 {
 
 
-    public class IncomingEvent
+    public class IncomingEvent : IExtendedDatas
     {
 
 
@@ -24,24 +24,9 @@ namespace Bb.Workflows.Models
 
         public DateTimeOffset EventDate { get; set; }
 
-        public DynObject ExtendedDatas { get; set; } = new DynObject();
+        public DynObject ExtendedDatas() { return _extendedDatas; }
 
-        internal Event Map()
-        {
-
-            var result = new Event()
-            {
-                Uuid = Guid.NewGuid(),
-                EventDate = this.EventDate,
-                Name = this.Name,
-                CreationDate = WorkflowClock.Now(),
-                ExtendedDatas = ExtendedDatas.Clone(),
-                Change = ChangeEnum.New,
-            };
-
-            return result;
-
-        }
+        private DynObject _extendedDatas = new DynObject();
 
     }
 

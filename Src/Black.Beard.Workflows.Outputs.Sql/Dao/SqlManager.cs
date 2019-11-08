@@ -18,9 +18,13 @@ namespace Bb.Dao
         {
             _factory = DbProviderFactories.GetFactory(configuration.ProviderInvariantName);
             _configuration = configuration;
-            QueryGenerator = configuration.QueryManager(this);
+
+            if (configuration.QueryManager != null)
+                QueryGenerator = configuration.QueryManager(this);
 
             LogCommandImpl = configuration.LogCommand;
+            if (LogCommandImpl == null)
+                Log = false;
 
             _regex = new Regex("\\{\\{\\w*}}", RegexOptions.None, TimeSpan.FromMilliseconds(1000));
 
@@ -258,7 +262,7 @@ namespace Bb.Dao
                     foreach (DbDataReader item in GetReader(cmd))
                     {
                         ctx.Reader = item;
-                        T result = new T();
+                        T result = mapping.Create<T>(ctx);
                         mapping.Map<T>(ctx, result);
                         result.Reset(mapping);
                         _results.Add(result);
@@ -407,17 +411,18 @@ namespace Bb.Dao
         private void LogCommand(DbCommand cmd)
         {
 
-            if (Log || System.Diagnostics.Debugger.IsAttached)
-            {
-                StringBuilder sb = new StringBuilder(200);
-                if (_currentTransaction == null)
-                    sb.AppendLine();
+            if (LogCommandImpl != null)
+                if (Log || System.Diagnostics.Debugger.IsAttached)
+                {
+                    StringBuilder sb = new StringBuilder(200);
+                    if (_currentTransaction == null)
+                        sb.AppendLine();
 
-                LogCommandImpl(cmd, QueryGenerator, sb);
+                    LogCommandImpl(cmd, QueryGenerator, sb);
 
-                Trace.WriteLine(sb.ToString(), "Sql");
+                    Trace.WriteLine(sb.ToString(), "Sql");
 
-            }
+                }
         }
 
         public Transaction GetTransaction(bool autocommit = false)

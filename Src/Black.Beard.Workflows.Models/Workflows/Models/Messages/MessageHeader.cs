@@ -13,20 +13,21 @@ namespace Bb.Workflows.Models.Messages
 
         public MessageHeader(List<KeyValuePair<string, string>> headers)
         {
-            this.Items.AddRange(headers
-                .Select(c =>  
-                    new MessageProperty() 
-                    {
-                        Name = c.Key, 
-                        Value = new MessageValue() 
-                        { 
-                            Value = c.Value, 
-                            Type = c.Value != null 
-                                ? c.Value.GetType().Name 
-                                : string.Empty 
-                        }  
-                    } )
-                );
+            if (headers != null)
+                this.Items.AddRange(headers
+                    .Select(c =>
+                        new MessageProperty()
+                        {
+                            Name = c.Key,
+                            Value = new MessageValue()
+                            {
+                                Value = c.Value,
+                                Type = c.Value != null
+                                    ? c.Value.GetType().Name
+                                    : string.Empty
+                            }
+                        })
+                    );
         }
 
         public List<MessageProperty> Items { get; set; } = new List<MessageProperty>();

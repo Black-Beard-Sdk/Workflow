@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -10,10 +10,12 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.4.0" />
     <PackageReference Include="MSTest.TestFramework" Version="1.4.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Black.beard.Workflow.AntlrParser\Black.Beard.Workflows.AntlrParser.csproj" />
+    <ProjectReference Include="..\Black.Beard.Workflows.Outputs.Sql\Black.Beard.Workflows.Outputs.Sql.csproj" />
     <ProjectReference Include="..\WorkflowSerializers\Black.Beard.Workflows.Serializers.csproj" />
   </ItemGroup>
 

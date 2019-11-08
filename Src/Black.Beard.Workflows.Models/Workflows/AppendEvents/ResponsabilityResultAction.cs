@@ -23,13 +23,13 @@ namespace Bb.Workflows
         {
 
             var ev = model.Event;
-            var eventId = ev.ExtendedDatas[Constants.EventId].GetValue(model).ToString();
-            var taskId = ev.ExtendedDatas[Constants.TaskUuid].GetValue(model).ToString();
+            var eventId = ev.ExtendedDatas()[Constants.EventId].GetValue(model).ToString();
+            var taskId = ev.ExtendedDatas()[Constants.TaskUuid].GetValue(model).ToString();
 
             if (model.Workflow.GetEvent(Guid.Parse(eventId), out Event e))
                 if (e.GetAction(Guid.Parse(taskId), out PushedAction a))
                 {
-                    a.Change = ChangeEnum.New,
+                    a.Change = ChangeEnum.New;
                     var i = model.IncomingEvent;
                     var m = new MessageRaw();
                     var body = new MessageBlock()
@@ -37,7 +37,7 @@ namespace Bb.Workflows
                         .Add(nameof(i.EventDate), i.EventDate.ToString())
                         ;
 
-                    foreach (var item in i.ExtendedDatas.Items)
+                    foreach (var item in i.ExtendedDatas().Items)
                         body.Add(item.Key, item.Value.GetValue(model));
 
                     m.Body = body;

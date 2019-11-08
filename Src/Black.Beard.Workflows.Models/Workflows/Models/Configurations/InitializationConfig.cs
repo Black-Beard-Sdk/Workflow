@@ -4,7 +4,7 @@ namespace Bb.Workflows.Models.Configurations
 {
 
 
-    [System.Diagnostics.DebuggerDisplay("WHEN {RuleText} SWITCH {TargetStateName}")]
+    [System.Diagnostics.DebuggerDisplay("WHEN {WhenRuleText} SWITCH {TargetStateName}")]
     public class InitializationConfig
     {
 

@@ -47,16 +47,18 @@ namespace UnitTestWorkflow
       'EventDate': '2019-09-23T09:48:47.3047926+02:00',   
       'Site': 'site1',
       'infos': { 'name': 'toto' },
-      'infos2': [ { 'name': 'toto' }, { 'name': 'titi' } ],
+      'infos2': [ { 'name': 'toto' }, { 'name': 'titi' } ]
     }".Replace("'", "\"");
 
 
-            IWorkflowSerializer serializer = new JsonWorkflowSerializer();
-            var msg = serializer.Unserialize(payload);
+            IWorkflowSerializer serializer = new PartialJsonWorkflowSerializer();
+            var msg = new IncomingEvent();
+            serializer.Populate(msg, payload);
 
             var payload2 = serializer.Serialize(msg);
 
-            msg = serializer.Unserialize(payload2);
+            msg = new IncomingEvent();
+            serializer.Populate(msg , payload2);
             var payload3 = serializer.Serialize(msg);
 
             Assert.AreEqual(payload2, payload3);

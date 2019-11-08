@@ -1,7 +1,7 @@
 ﻿using Bb.Workflows.Models;
 using System;
 
-namespace Black.Beard.Workflows.Outputs.Sql
+namespace Bb.Workflows.Outputs.Sql
 {
     public class ActionByKey : PushedAction
     {

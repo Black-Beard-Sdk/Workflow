@@ -16,17 +16,14 @@ namespace Bb.Workflows.Models
 
         }
 
-        public RunContext Set(Workflow workflow, IncomingEvent @event)
+        public RunContext Set(Workflow workflow, IncomingEvent @event, WorkflowFactory factory)
         {
 
             this.IncomingEvent = @event;
-            this.Event = @event.Map();
+            this.Workflow = workflow;
 
-            if (workflow != null)
-            {
-                this.Workflow = workflow;
-                this.PreviousEvent = this.Workflow.LastEvent;
-            }
+            if (factory != null)
+                this.Event = factory.CreateBaseEvent(@event);
 
             return this;
 
@@ -38,14 +35,12 @@ namespace Bb.Workflows.Models
 
         public Event Event { get; private set; }
 
-        public Event PreviousEvent { get; private set; }
-
         public DynObject ExtendedDatas { get; set; } = new DynObject();
-        
+
         public IWorkflowSerializer Serializer { get; internal set; }
 
         public IList<ResultAction> Actions { get; } = new List<ResultAction>();
-        
+
         public List<MessageText> FunctionalLog { get; } = new List<MessageText>();
 
         public CurrentEvaluationDatas CurrentEvaluation { get; internal set; } = new CurrentEvaluationDatas();
@@ -55,11 +50,11 @@ namespace Bb.Workflows.Models
 
     public class CurrentEvaluationDatas
     {
-        
+
         public string WhenRuleText { get; internal set; }
-        
+
         public string WhenRuleCode { get; internal set; }
-        
+
         public RuleSpan WhenRulePosition { get; internal set; } = RuleSpan.None;
 
     }

@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Threading;
 
-namespace Black.Beard.Workflows.Outputs.Sql
+namespace Bb.Workflows.Outputs.Sql
 {
 
     public class LockerSqlServer : ILockObject

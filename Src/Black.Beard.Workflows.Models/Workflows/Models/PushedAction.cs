@@ -32,7 +32,9 @@ namespace Bb.Workflows.Models
         public MessageRaw CancelMessage { get; set; } 
         
         public MessageRaw ResultCancelMessage { get; set; }
-        public string Kind { get; internal set; }
+    
+        public string Kind { get; set; }
+    
     }
 
 

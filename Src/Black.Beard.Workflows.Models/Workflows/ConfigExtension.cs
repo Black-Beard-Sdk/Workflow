@@ -53,7 +53,7 @@ namespace Bb.Workflows
 
         public static IncomingEvent AddExtendedDatas(this IncomingEvent self, string key, string value)
         {
-            self.ExtendedDatas.Items.Add(key, new DynObject().SetValue(value));
+            self.ExtendedDatas().Items.Add(key, new DynObject().SetValue(value));
             return self;
         }
 

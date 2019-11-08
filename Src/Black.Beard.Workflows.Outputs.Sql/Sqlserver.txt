@@ -104,7 +104,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[Locks](
 	[Uuid] [bigint] NOT NULL,
-	[InsertedDate] [timestamp] NOT NULL,
+	[InsertedDate] datetimeoffset(7) NOT NULL,
  CONSTRAINT [PK_Locks] PRIMARY KEY CLUSTERED 
 (
 	[Uuid] ASC
@@ -123,11 +123,12 @@ CREATE TABLE [dbo].[WorkflowActions](
 	[Order] [int] NOT NULL,
 	[ExternalIdCrc] [bigint] NOT NULL,
 	[Closed] [bit] NOT NULL,
-	[CreationDate] [timestamp] NOT NULL,
-	[ExecuteMessage] [varchar](max) NOT NULL,
-	[ResultExecuteMessage] [varchar](max) NOT NULL,
-	[CancelExecuteMessage] [varchar](max) NULL,
-	[ResultCancelExecuteMessage] [varchar](max) NULL,
+	[CreationDate] datetimeoffset(7) NOT NULL,
+	[LasteUpdateDate] datetimeoffset(7) NOT NULL,
+	[ExecuteMessage] [nvarchar](max) NOT NULL,
+	[ResultExecuteMessage] [nvarchar](max) NULL,
+	[CancelExecuteMessage] [nvarchar](max) NULL,
+	[ResultCancelExecuteMessage] [nvarchar](max) NULL,
  CONSTRAINT [PK_WorkflowActions] PRIMARY KEY CLUSTERED 
 (
 	[Uuid] ASC
@@ -146,12 +147,13 @@ CREATE TABLE [dbo].[WorkflowEvents](
 	[Order] [int] NOT NULL,
 	[ExternalIdCrc] [bigint] NOT NULL,
 	[Closed] [bit] NOT NULL,
-	[CreationDate] [timestamp] NOT NULL,
+	[CreationDate] datetimeoffset(7) NOT NULL,
 	[EventDate] [datetimeoffset](7) NOT NULL,
 	[FromState] [varchar](70) NOT NULL,
 	[ToState] [varchar](70) NOT NULL,
 	[ToStateCrc] [bigint] NOT NULL,
-	[Datas] [varchar](max) NOT NULL,
+	[Datas] [varchar](max) NULL,
+	[DatasWorkflow] [varchar](max) NULL,
  CONSTRAINT [PK_WorkflowEvents] PRIMARY KEY CLUSTERED 
 (
 	[Uuid] ASC
@@ -167,18 +169,17 @@ CREATE TABLE [dbo].[Workflows](
 	[Uuid] [uniqueidentifier] NOT NULL,
 	[ExternalId] [varchar](80) NOT NULL,
 	[ExternalIdCrc] [bigint] NOT NULL,
-	[CreationDate] [timestamp] NOT NULL,
+	[CreationDate] datetimeoffset(7) NOT NULL,
 	[LastUpdateDate] [datetimeoffset](7) NOT NULL,
 	[WorkflowName] [varchar](70) NOT NULL,
 	[WorkflowVersion] [smallint] NOT NULL,
 	[Closed] [bit] NOT NULL,
 	[Concurency] [int] NOT NULL,
-	[Datas] [varchar](max) NOT NULL,
  CONSTRAINT [PK_Workflows] PRIMARY KEY CLUSTERED 
 (
 	[Uuid] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+) ON [PRIMARY]
 GO
 /****** Object:  Index [Locks_insertedDate]    Script Date: 02/11/2019 11:40:09 ******/
 CREATE NONCLUSTERED INDEX [Locks_insertedDate] ON [dbo].[Locks]

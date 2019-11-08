@@ -6,14 +6,18 @@ namespace Bb.Workflows.Converters
     internal class VisitorJsonSerialiser : MessageVisitor<JToken>
     {
 
+        public VisitorJsonSerialiser()
+        {
+
+        }
 
         public override JToken VisitMessageRaw(MessageRaw m)
         {
             return new JObject()
-                {
-                    new JProperty(nameof(m.Header), m.Header.Accept(this)),
-                    new JProperty(nameof(m.Body), m.Body.Accept(this)),
-                };
+            {
+                new JProperty(nameof(m.Header), m.Header.Accept(this)),
+                new JProperty(nameof(m.Body), m.Body.Accept(this)),
+            };
         }
 
 
@@ -33,7 +37,11 @@ namespace Bb.Workflows.Converters
             {
                 var array = new JArray();
                 foreach (Message item in m.Items)
-                    array.Add(item.Accept(this));
+                {
+                    var arrayItem = item.Accept(this);
+                    array.Add(arrayItem);
+                }
+
                 return array;
 
             }
@@ -41,7 +49,11 @@ namespace Bb.Workflows.Converters
             {
                 var obj = new JObject();
                 foreach (Message item in m.Items)
-                    obj.Add(item.Accept(this));
+                {
+                    var property = item.Accept(this);
+                    obj.Add(property);
+                }
+
                 return obj;
             }
 
@@ -50,11 +62,8 @@ namespace Bb.Workflows.Converters
 
         public override JToken VisitMessageProperty(MessageProperty m)
         {
-            return new JObject()
-                {
-                    new JProperty(nameof(m.Name), new JValue(m.Name)),
-                    new JProperty(nameof(m.Value), m.Accept(this)),
-                };
+            var v = (JObject)m.Value.Accept(this);
+            return new JProperty(m.Name, v);
         }
 
 
@@ -66,6 +75,7 @@ namespace Bb.Workflows.Converters
                     new JProperty(nameof(m.Type), new JValue(m.Type)),
                 };
         }
+
     }
 
 }

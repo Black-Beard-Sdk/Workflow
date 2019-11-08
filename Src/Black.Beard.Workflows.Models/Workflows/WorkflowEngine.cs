@@ -8,22 +8,22 @@ using System.Threading.Tasks;
 
 namespace Bb.Workflows
 {
+
     public class WorkflowEngine
     {
-        private readonly UseResource _resource;
 
         public WorkflowEngine()
         {
             this._resource = new UseResource();
         }
 
-        public void EvaluateEvent(string payload)
+        public void EvaluateEvent(string payload, string incomingType = null)
         {
 
             IncomingEvent msg;
             try
             {
-                msg = this.Serializer.Unserialize(payload);
+                msg = this.Processor.Factory.CreateBaseIncomingEvent(payload, incomingType);
             }
             catch (Exception e)
             {
@@ -42,8 +42,6 @@ namespace Bb.Workflows
         {
             return new LockProcess(crc, this.Locker, this._resource);
         }
-
-        public IWorkflowSerializer Serializer { get; set; }
 
         public WorkflowProcessor Processor { get; set; }
 
@@ -149,6 +147,8 @@ namespace Bb.Workflows
             private long midValueCount;
 
         }
+
+        private readonly UseResource _resource;
 
     }
 

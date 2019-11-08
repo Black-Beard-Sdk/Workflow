@@ -1,4 +1,4 @@
-﻿namespace Bb.Dao.Dao
+﻿namespace Bb.Dao
 {
     public enum QueryKindEnum
     {

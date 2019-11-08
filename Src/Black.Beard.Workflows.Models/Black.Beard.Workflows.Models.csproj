@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Black.Beard.ComponentModel\Src\Black.Beard.ComponentModel\Black.Beard.ComponentModel.csproj" />
     <ProjectReference Include="..\..\..\Black.Beard.Expressions\Src\Black.Beard.Expressions\Black.Beard.Expressions.csproj" />
   </ItemGroup>
 

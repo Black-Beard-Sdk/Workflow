@@ -19,16 +19,19 @@ namespace Bb.Workflows
 
         public abstract void EvaluateEvent(IncomingEvent @event);
 
+        public WorkflowFactory Factory { get; protected set; }
+
     }
 
     public class WorkflowProcessor<TContext> : WorkflowProcessor
     where TContext : RunContext, new()
     {
 
-        public WorkflowProcessor(WorkflowsConfig config, Action<TContext> contextCreator = null)
+        public WorkflowProcessor(WorkflowsConfig config, WorkflowFactory<TContext> factory)
         {
             this._config = config;
-            this._contextCreator = contextCreator;
+            this.Factory = factory;
+            this._factory = factory;
 
             // Build a responsability chain for evaluate where the event must be intégrated in the tree model
             this.AppendEvent = new ResponsabilityResultAction<TContext>(
@@ -39,8 +42,6 @@ namespace Bb.Workflows
         public TemplateRepository Templates { get; set; } = new TemplateRepository();
 
         public MetadatRepository Metadatas { get; set; } = new MetadatRepository();
-
-        public IWorkflowSerializer Serializer { get; set; }
 
         public Func<OutputAction> OutputActions { get; set; }
 
@@ -96,7 +97,7 @@ namespace Bb.Workflows
 
                     var raw = new MessageRaw()
                     {
-                        Header = new MessageHeader(header) { },
+                        Header = new MessageHeader(header),
                         Body = (MessageBlock)body.Resolve(context),
                     };
 
@@ -150,7 +151,7 @@ namespace Bb.Workflows
                 List<Workflow> workflows = LoadExistingWorkflowsByExternalId(@event.ExternalId);
 
                 // if incoming event contains WorkflowId property it must be restricted on the specified workflowid
-                if (@event.ExtendedDatas.Items.TryGetValue(Constants.Properties.WorkflowId, out DynObject d))
+                if (@event.ExtendedDatas().Items.TryGetValue(Constants.Properties.WorkflowId, out DynObject d))
                 {
                     Guid workflowId = Guid.Parse(d.GetValue(null)?.ToString());
                     workflows = workflows.Where(w => w.Uuid == workflowId).ToList();
@@ -160,7 +161,7 @@ namespace Bb.Workflows
                     if (CheckAndResolveConfig(item, @event.Uuid, @event.Name, out WorkflowConfig config))
                     {
 
-                        var ctx = CreateContext(item, @event);
+                        var ctx = _factory.CreateContext(item, @event);
                         ctx.Event.ToState = ctx.Event.FromState = ctx.Workflow.CurrentState;
                         EvaluateEventInCurrentWorkflow(config, ctx);
 
@@ -239,7 +240,7 @@ namespace Bb.Workflows
         private static TContext ExecuteTransitionAfterCreationOfNewWorkflow(WorkflowConfig config, TContext ctx)
         {
 
-            var state = config.States[ctx.Workflow.CurrentState];
+            var state = config.States[ctx.Event.ToState];
             ParseAndCollectRules(state.IncomingRules, ctx);
 
             if (ctx.Workflow.Recursive)
@@ -258,20 +259,15 @@ namespace Bb.Workflows
             if (config.Initializers.TryGetValue(@event.Name, out InitializationOnEventConfig initializationOnEventConfig))
             {
 
-                Workflow wrk = new Workflow()
-                {
-                    Uuid = Guid.NewGuid(),
-                    WorkflowName = config.Name,
-                    Version = config.Version,
-                    ExternalId = @event.ExternalId,
-                    CreationDate = WorkflowClock.Now(),
-                    LastUpdateDate = WorkflowClock.Now(),
-                    ExtendedDatas = @event.ExtendedDatas.Clone(),
-                    Concurency = 1,
-                    Change = ChangeEnum.New,
-                };
+                Workflow wrk = _factory.CreateNewWorkflow
+                (
+                    config.Name,
+                    config.Version,
+                    @event.ExternalId,
+                    @event.ExtendedDatas().Clone()
+                );
 
-                ctx = CreateContext(wrk, @event);
+                ctx = _factory.CreateContext(wrk, @event);
 
                 foreach (var sw in initializationOnEventConfig.Switchs)
                     if (Evaluate(sw, ctx))
@@ -337,6 +333,7 @@ namespace Bb.Workflows
                     }
 
         }
+
 
         #region RuleEvaluation
 
@@ -430,21 +427,6 @@ namespace Bb.Workflows
 
         #endregion RuleEvaluation
 
-        private TContext CreateContext(Workflow workflow, IncomingEvent @event)
-        {
-
-            TContext context = new TContext()
-            {
-                Serializer = this.Serializer,
-            };
-
-            context.Set(workflow, @event);
-
-            this._contextCreator?.Invoke(context);
-
-            return context;
-
-        }
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Diagnostics.DebuggerNonUserCode]
@@ -456,7 +438,7 @@ namespace Bb.Workflows
 
 
         private readonly WorkflowsConfig _config;
-        private readonly Action<TContext> _contextCreator;
+        private readonly WorkflowFactory<TContext> _factory;
         private readonly Responsability<TContext> AppendEvent;
     
     }

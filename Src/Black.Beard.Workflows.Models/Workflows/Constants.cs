@@ -8,6 +8,8 @@ namespace Bb.Workflows
     public static class Constants
     {
 
+        public const string CurrentWorkflow = "_workflow";
+
         public const string SetValueActionName = "$_update";
         public const string PushActionName = "$_push";
         public const string PushReminder = "$_reminder";

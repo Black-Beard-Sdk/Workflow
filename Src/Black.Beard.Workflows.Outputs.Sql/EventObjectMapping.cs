@@ -1,13 +1,16 @@
 ﻿using Bb.Dao;
 using Bb.Workflows.Models;
+using System;
 
-namespace Black.Beard.Workflows.Outputs.Sql
+namespace Bb.Workflows.Outputs.Sql
 {
     public class EventObjectMapping : ObjectMapping
     {
 
-        public EventObjectMapping() : base(typeof(EventByKey))
+        public EventObjectMapping(WorkflowFactory factory) : base(typeof(EventByKey))
         {
+
+            this._factory = factory;
 
             Build("WorkflowEvents"
                 , (nameof(Event.Uuid), "Uuid")
@@ -16,7 +19,8 @@ namespace Black.Beard.Workflows.Outputs.Sql
                 , (nameof(Event.FromState), "FromState")
                 , (nameof(Event.ToState), "ToState")
                 , (nameof(Event.EventDate), "EventDate")
-                , (nameof(EventByKey.WorkflowUuid), "WorkflowUuid")
+                , (nameof(EventByKey.WorkflowUuid), "WorkflowUuid")                
+                , (nameof(EventByKey.Tag), "DatasWorkflow")
                 );
 
         }
@@ -26,9 +30,15 @@ namespace Black.Beard.Workflows.Outputs.Sql
 
             base.Map<T>(ctx, result);
 
-            var w = (Event)(object)result;
+            var w = (EventByKey)(object)result;
+            var txt = ctx.GetString("Datas");
+
+            if (!string.IsNullOrEmpty(txt))
+                _factory.Serializer.Populate(w, txt);
 
         }
+
+        private readonly WorkflowFactory _factory;
 
     }
 

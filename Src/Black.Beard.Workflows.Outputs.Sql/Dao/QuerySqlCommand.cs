@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Bb.Dao.Dao
+namespace Bb.Dao
 {
 
     public class QuerySqlCommand

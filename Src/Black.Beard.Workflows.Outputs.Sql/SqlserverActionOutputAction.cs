@@ -1,6 +1,5 @@
-﻿using System.Linq;
-using Bb.Workflows.Models;
-using Black.Beard.Workflows.Outputs.Sql;
+﻿using Bb.Workflows.Models;
+using Bb.Workflows.Outputs.Sql;
 
 namespace Bb.Workflows.Outputs.Mom
 {

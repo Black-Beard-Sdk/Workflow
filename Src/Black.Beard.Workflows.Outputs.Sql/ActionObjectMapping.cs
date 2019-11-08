@@ -1,7 +1,7 @@
 ﻿using Bb.Dao;
 using Bb.Workflows.Models;
 
-namespace Black.Beard.Workflows.Outputs.Sql
+namespace Bb.Workflows.Outputs.Sql
 {
     public class ActionObjectMapping : ObjectMapping
     {
@@ -26,7 +26,7 @@ namespace Black.Beard.Workflows.Outputs.Sql
 
             base.Map<T>(ctx, result);
 
-            var w = (Event)(object)result;
+            var w = (ActionByKey)(object)result;
 
         }
 

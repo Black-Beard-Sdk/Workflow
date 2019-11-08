@@ -118,6 +118,30 @@ namespace Bb.Dao
 
         }
 
+        internal void Build(string tableName, params (string, string, Func<object, object>)[] columns)
+        {
+
+            TableName = tableName;
+
+            var items = Type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+            foreach (var item in columns)
+            {
+
+                var u = items.FirstOrDefault(c => c.Name == item.Item1);
+                if (u == null)
+                    throw new Exception($"Missing property {item.Item1}");
+
+                PropertyMapping propertyMapping = new PropertyMapping(u, item.Item2)
+                {
+                    Convert = item.Item3,
+                };
+                propertyMapping.Build();
+                _properties.Add(propertyMapping.Name, propertyMapping);
+            }
+
+        }
+
         internal virtual void Map<T>(DbDataReaderContext ctx, T result)
         {
 
@@ -149,12 +173,15 @@ namespace Bb.Dao
                             mapping.SetValue(result, datas.Item2);
 
                     }
-                }
-                else
-                    throw new MissingMemberException(datas.Item1);
+                }              
 
             }
 
+        }
+
+        public virtual T Create<T>(DbDataReaderContext ctx) where T : new()
+        {
+            return new T();
         }
 
     }

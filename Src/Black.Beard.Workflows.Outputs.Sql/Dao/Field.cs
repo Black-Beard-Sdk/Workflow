@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace Bb.Dao.Dao
+namespace Bb.Dao
 {
 
 

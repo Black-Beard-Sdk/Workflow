@@ -9,18 +9,9 @@ namespace Bb.Workflows.Converters
     public interface IWorkflowSerializer
     {
 
+        string Serialize(object instance);
 
-        IncomingEvent Unserialize(string payload);
-
-        string Serialize(IncomingEvent @event);
-
-
-
-        string Serialize(Workflow workflow);
-
-
-
-        string Serialize(PushedAction pushedAction);
+        void Populate(object instance, string payload);
 
     }
 

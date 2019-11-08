@@ -1,7 +1,13 @@
 ﻿namespace Bb.Workflows.Models.Messages
 {
+
     public class MessageRaw : Message
     {
+
+        public MessageRaw()
+        {
+
+        }
 
         public MessageHeader Header { get; set; }
         

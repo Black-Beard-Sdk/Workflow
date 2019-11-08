@@ -299,8 +299,8 @@ namespace Bb.Workflows.Parser.Models
                     var p = _block.AddVarIfNotExists(typeof(DynObject), _GetName(typeof(DynObject)));
                     parameterResult = _block.AddVarIfNotExists(typeof(string), _GetName(typeof(string)));
 
-                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                    _block.Assign(parameterResult, p.Call(method, _p, currentInstance));
+                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(TContext), typeof(string) });
+                    _block.Assign(parameterResult, p.Call(method, _p, currentInstance, Expression.Constant(fullPath)));
 
                 }
                 else
@@ -315,11 +315,13 @@ namespace Bb.Workflows.Parser.Models
                         var _last = p;
                         var _p = GetPath(path, memberName);
                         p = _block.AddVarIfNotExists(typeof(DynObject), _GetName(typeof(DynObject)));
-                        _block.Assign(p, Expression.Property(_last, "ExtendedDatas"));
+
+                        var ExtendedDatasMethod = _last.Type.GetMethod("ExtendedDatas");
+                        _block.Assign(p, Expression.Call(_last, ExtendedDatasMethod));
 
                         parameterResult = _block.AddVarIfNotExists(typeof(string), _GetName(typeof(string)));
-                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>) });
-                        _block.Assign(parameterResult, p.Call(method, _p, currentInstance));
+                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(TContext), typeof(string) });
+                        _block.Assign(parameterResult, p.Call(method, _p, currentInstance, Expression.Constant(fullPath)));
 
                     }
                     else
@@ -328,8 +330,9 @@ namespace Bb.Workflows.Parser.Models
                         parameterResult = _block.AddVarIfNotExists(property.PropertyType, _GetName(property.PropertyType));
                         _block.Assign(parameterResult, Expression.Property(p, property));
 
+                        string msgError = $"key {memberName} is missing in {fullPath}";
                         _block.If(Expression.Equal(parameterResult, Expression.Constant(null))
-                            , typeof(NullReferenceException).Throw(Expression.Constant(memberName))
+                            , typeof(NullReferenceException).Throw(Expression.Constant(msgError))
                             );
 
                         lastInstanceType = property.PropertyType;

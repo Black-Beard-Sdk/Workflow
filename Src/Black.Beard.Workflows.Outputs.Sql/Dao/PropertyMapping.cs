@@ -33,7 +33,7 @@ namespace Bb.Dao
         public DbType DbType { get; private set; }
         public bool LastChangeDate { get; private set; }
         public bool SecurityCoherence { get; private set; }
-
+        public Func<object, object> Convert { get; internal set; }
 
         public bool IsGuid()
         {

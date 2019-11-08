@@ -47,8 +47,8 @@ namespace Bb.Workflows.Expresssions
                     if (!vars.TryGetValue(typeof(object), out parameterResult))
                         vars.Add(typeof(string), (parameterResult = Expression.Parameter(typeof(object), "_" + typeof(string).Name.ToLower())));
 
-                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(object) });
-                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
+                    var method = lastInstanceType.GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(object), typeof(string) });
+                    var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0, Expression.Constant(fullPath)));
                     blk.Add(j);
                 }
                 else
@@ -67,13 +67,15 @@ namespace Bb.Workflows.Expresssions
                         if (!vars.TryGetValue(typeof(DynObject), out p))
                             vars.Add(typeof(DynObject), (p = Expression.Parameter(typeof(DynObject), "_" + typeof(DynObject).Name.ToLower())));
 
-                        blk.Add(Expression.Assign(p, Expression.Property(_last, "ExtendedDatas")));
+                        var methodExtendedDatas = _last.Type.GetMethod("ExtendedDatas");
+
+                        blk.Add(Expression.Assign(p, Expression.Call(_last, methodExtendedDatas)));
 
                         if (!vars.TryGetValue(typeof(string), out parameterResult))
                             vars.Add(typeof(object), (parameterResult = Expression.Parameter(typeof(object), "_" + typeof(string).Name.ToLower())));
 
-                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(RunContext) });
-                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0));
+                        var method = typeof(DynObject).GetMethod("GetWithPath", new Type[] { typeof(Queue<string>), typeof(RunContext), typeof(string) });
+                        var j = Expression.Assign(parameterResult, Expression.Call(p, method, _p, arg0, Expression.Constant(fullPath)));
                         blk.Add(j);
 
                     }
@@ -86,8 +88,9 @@ namespace Bb.Workflows.Expresssions
                         var e = Expression.Assign(parameterResult, Expression.Property(p, property));
                         blk.Add(e);
 
+                        string msgError = $"key {memberName} is missing in {fullPath}";
                         var i = Expression.IfThen(Expression.Equal(parameterResult, Expression.Constant(null)),
-                            Expression.Throw(Expression.New(ctor, Expression.Constant(memberName)), typeof(NullReferenceException))
+                            Expression.Throw(Expression.New(ctor, Expression.Constant(msgError)), typeof(NullReferenceException))
                             );
                         blk.Add(i);
 

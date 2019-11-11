@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>fileTypes</key>
+    <array>
+      <string>workflow</string>
+    </array>
+    <key>name</key>
+    <string>Workflows</string>
+    <key>patterns</key>
+    <array>
+      <dict>
+        <key>name</key>
+        <string>keyword</string>
+        <key>match</key>
+        <string>(?&lt;!\.)\b(STATE)\b</string>
+      </dict>
+    </array>
+    <key>scopeName</key>
+    <string>source.workflow</string>
+    <key>uuid</key>
+    <string>DBC48385-09BB-4CA2-9972-02C20FEE3BEB</string>
+  </dict>
+</plist>

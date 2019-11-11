@@ -1,0 +1,11 @@
+﻿[$RootKey$\OpenFolder\Settings\VSWorkspaceSettings\WorkflowLanguageExtension]
+@="$PackageFolder$\WorkflowLanguageExtensionSettings.json"
+
+[$RootKey$\TextMate\Repositories]
+"TextmateWorkflow"="$PackageFolder$\Grammars"
+
+; Associate icons with file extensions in Solution Explorer
+; Add an icon for each file extension supported by the .tmLanguage grammar file
+; Find more icons at http://glyphlist.azurewebsites.net/knownmonikers/
+[$RootKey$\ShellFileAssociations\.workflow]
+"DefaultIconMoniker"="KnownMonikers.ClassFile"

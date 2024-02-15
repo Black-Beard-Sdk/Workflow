@@ -1,5 +1,5 @@
 # Workflow [![Build status](https://ci.appveyor.com/api/projects/status/r58r4d3rl4o60ohj?svg=true)](https://ci.appveyor.com/project/gaelgael5/calendarium-0v0lc)
-workflow process with a language dedicated to functional business
+workflow process with a language dedicated to describe functional business.
 
 Syntaxe for write valid configuration
 ```Antlr
@@ -179,22 +179,28 @@ delay :
 
 Exemple de configuration workflow
 ```Configuration
+
     NAME wrk1 VERSION 2
     CONCURENCY 1
-    DESCRIPTION                 'workflow de test'
+    DESCRIPTION                                 'workflow de test'
+    -- you can load many configurations in the processor. the processor will evaluate what the best configuration for evaluate the workflow rules
     MATCHING (Country = 'France')
 
+    -- define all events will interectact with the workflow
     DEFINE EVENT     Event1                     'incoming event 1';
     DEFINE EVENT     Event2                     'incoming event 2';
 
+    --  define all rules will matchs the best swich
     DEFINE RULE      IsMajor (INTEGER agemin)   'this method 1';
     DEFINE RULE      IsEmpty (TEXT name)        'this method 2'; 
 
+    --  define all actions can be triggered
     DEFINE ACTION    Cut(TEXT key)              'Remove user';
 
     DEFINE CONST     Name 'gael'                'ben oui c est moi';
     DEFINE CONST     agemin 18                  'min for been major';
 
+    -- after all declarations, this line is required for initialize workflow
     INITIALIZE WORKFLOW
         ON EVENT Event1 WHEN NOT IsEmpty(name = @Event.ExternalId) 
             SWITCH State1

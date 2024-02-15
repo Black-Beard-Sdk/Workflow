@@ -6,6 +6,7 @@ using System.Text;
 
 namespace Bb.VisualStudio.Parser.Workflows.Grammar
 {
+
     public class WorkflowConfigParsers
     {
         private readonly TextWriter _output;

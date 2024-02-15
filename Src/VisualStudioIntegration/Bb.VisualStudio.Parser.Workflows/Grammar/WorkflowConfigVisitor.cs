@@ -23,6 +23,34 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
             this._currentCulture = culture ?? CultureInfo.InvariantCulture;
         }
 
+        public override object Visit(IParseTree tree)
+        {
+            this._keywords = new List<KeywordModel>();
+            this._errors = new List<ErrorModel>();
+            this._references = new List<ReferenceModel>();
+            this._texts = new List<TextModel>();
+            this._dic = new Dictionary<Type, List<BoxRuleContext>>();
+            this._hash = new HashSet<Type>()
+            {
+                typeof(WorkflowParser.ConstantNameDefinitionContext),
+                typeof(WorkflowParser.StateNameDefinitionContext),
+                typeof(WorkflowParser.StateNamereferenceContext),
+                typeof(WorkflowParser.EventNamereferenceContext),
+                typeof(WorkflowParser.EventNameDefinitionContext),
+                typeof(WorkflowParser.ActionNameDefinitionContext),
+                typeof(WorkflowParser.ActionNameReferenceContext),
+                typeof(WorkflowParser.RuleNameDefinitionContext),
+                typeof(WorkflowParser.RuleNameReferenceContext),
+            };
+
+            EvaluateSyntaxErrors(tree);
+
+            EvaluateSemanticErrors();
+
+            return this;
+
+        }
+
         public void EvaluateSyntaxErrors(IParseTree item)
         {
 
@@ -77,37 +105,9 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
 
         }
 
-        public override object Visit(IParseTree tree)
-        {
-            this._keywords = new List<KeywordModel>();
-            this._errors = new List<ErrorModel>();
-            this._references = new List<ReferenceModel>();
-            this._texts = new List<TextModel>();
-            this._dic = new Dictionary<Type, List<BoxRuleContext>>();
-            this._hash = new HashSet<Type>()
-            {
-                typeof(WorkflowParser.ConstantNameDefinitionContext),
-                typeof(WorkflowParser.StateNameDefinitionContext),
-                typeof(WorkflowParser.StateNamereferenceContext),
-                typeof(WorkflowParser.EventNamereferenceContext),
-                typeof(WorkflowParser.EventNameDefinitionContext),
-                typeof(WorkflowParser.ActionNameDefinitionContext),
-                typeof(WorkflowParser.ActionNameReferenceContext),
-                typeof(WorkflowParser.RuleNameDefinitionContext),
-                typeof(WorkflowParser.RuleNameReferenceContext),
-            };
-
-            EvaluateSyntaxErrors(tree);
-
-            EvaluateSemanticErrors();
-
-
-            return this;
-
-        }
-
         private void EvaluateSemanticErrors()
         {
+
             Check(typeof(WorkflowParser.StateNamereferenceContext), typeof(WorkflowParser.StateNameDefinitionContext));
             Check(typeof(WorkflowParser.EventNamereferenceContext), typeof(WorkflowParser.EventNameDefinitionContext));
             Check(typeof(WorkflowParser.ActionNameReferenceContext), typeof(WorkflowParser.ActionNameDefinitionContext));
@@ -126,31 +126,32 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
         {
             if (this._dic.TryGetValue(typeRef, out List<BoxRuleContext> listRef))
             {
-
-                if (!this._dic.TryGetValue(typeDef, out List<BoxRuleContext> listDef))
-                    listDef = new List<BoxRuleContext>();
-
+                this._dic.TryGetValue(typeDef, out List<BoxRuleContext> listDef);
                 Check(listRef, listDef);
-
             }
         }
 
         private void Check(List<BoxRuleContext> listRef, List<BoxRuleContext> listDef)
         {
 
-            foreach (var item in listDef)
-                if (listDef.Count(c => c.Text == item.Text) > 1)
-                    this._errors.Add(new ErrorModel()
-                    {
-                        Filename = Filename,
-                        Line = item.Start.Line,
-                        StartIndex = item.Start.StartIndex,
-                        Column = item.Start.Column,
-                        Text = item.Text,
-                        Message = $"duplicated {item.Type} '{item.Text}' at position {item.Start.StartIndex}, line {item.Start.Line}, column {item.Start.Column}",
-                        Code = "Semantic",
-                    });
+            if (listDef != null)
+            {
+                var list = listDef.ToList();
 
+                foreach (var item in list)
+                    if (listDef.Count(c => c.Text == item.Text) > 1)
+                        this._errors.Add(new ErrorModel()
+                        {
+                            Filename = Filename,
+                            Line = item.Start.Line,
+                            StartIndex = item.Start.StartIndex,
+                            Column = item.Start.Column,
+                            Text = item.Text,
+                            Message = $"duplicated {item.Type} '{item.Text}' at position {item.Start.StartIndex}, line {item.Start.Line}, column {item.Start.Column}",
+                            Code = "Semantic",
+                        });
+
+            }
 
             foreach (var item in listRef)
                 if (!listDef.Any(c => c.Text == item.Text))
@@ -554,8 +555,11 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
 
 
         public IEnumerable<ErrorModel> Errors { get => this._errors; }
+
         public IEnumerable<KeywordModel> Keywords { get => this._keywords; }
+
         public IEnumerable<ReferenceModel> References { get => this._references; }
+
         public IEnumerable<TextModel> Texts { get => this._texts; }
 
         public string Filename { get; set; }

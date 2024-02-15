@@ -2,6 +2,7 @@
 
 namespace Bb.VisualStudio.Parser.Workflows.Grammar
 {
+
     public class BoxWorkflowConfigParser
     {
         public string SourceFile { get; internal set; }

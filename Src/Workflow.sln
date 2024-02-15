@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29306.81
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34302.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Black.Beard.Workflows.Serializers", "WorkflowSerializers\Black.Beard.Workflows.Serializers.csproj", "{6D0BD607-FCA1-4307-AA0B-A91CCF44A0FA}"
 EndProject
@@ -31,10 +31,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Black.Beard.Expressions", "..\..\Black.Beard.Expressions\Src\Black.Beard.Expressions\Black.Beard.Expressions.csproj", "{DBE63B4A-1DF9-4A97-8F69-96704BC8EB25}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Black.Beard.Workflows.Outputs.Sql", "Black.Beard.Workflows.Outputs.Sql\Black.Beard.Workflows.Outputs.Sql.csproj", "{28A151E3-A698-4FE7-9B80-476115AD79CF}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Black.Beard.ComponentModel.Attributes", "..\..\Black.Beard.ComponentModel\Src\Black.Beard.ComponentModel.Attributes\Black.Beard.ComponentModel.Attributes.csproj", "{47D2D051-1819-4ABD-B874-388BA314820E}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Black.Beard.ComponentModel", "..\..\Black.Beard.ComponentModel\Src\Black.Beard.ComponentModel\Black.Beard.ComponentModel.csproj", "{E91B1E63-7CBC-40C4-B914-791416ABCEDE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -74,14 +70,6 @@ Global
 		{28A151E3-A698-4FE7-9B80-476115AD79CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28A151E3-A698-4FE7-9B80-476115AD79CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{28A151E3-A698-4FE7-9B80-476115AD79CF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{47D2D051-1819-4ABD-B874-388BA314820E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{47D2D051-1819-4ABD-B874-388BA314820E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{47D2D051-1819-4ABD-B874-388BA314820E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{47D2D051-1819-4ABD-B874-388BA314820E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E91B1E63-7CBC-40C4-B914-791416ABCEDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E91B1E63-7CBC-40C4-B914-791416ABCEDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E91B1E63-7CBC-40C4-B914-791416ABCEDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E91B1E63-7CBC-40C4-B914-791416ABCEDE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -94,8 +82,6 @@ Global
 		{23F6AD77-E17E-4C9C-9E50-0B29477F6D2C} = {7B8E7BBF-0430-43AE-BCC7-4E721F0AF424}
 		{DBE63B4A-1DF9-4A97-8F69-96704BC8EB25} = {51CA10A1-188E-423B-87A5-5A403C0E42EF}
 		{28A151E3-A698-4FE7-9B80-476115AD79CF} = {1F3826AC-1A33-46E3-8A80-A10596D43AC7}
-		{47D2D051-1819-4ABD-B874-388BA314820E} = {51CA10A1-188E-423B-87A5-5A403C0E42EF}
-		{E91B1E63-7CBC-40C4-B914-791416ABCEDE} = {51CA10A1-188E-423B-87A5-5A403C0E42EF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {50D0DDEB-18EB-4A38-A304-7882FEADD864}

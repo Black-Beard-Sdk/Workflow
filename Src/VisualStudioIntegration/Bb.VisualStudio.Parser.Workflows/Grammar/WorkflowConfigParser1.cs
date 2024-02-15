@@ -1,20 +1,20 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using Bb.VisualStudio.Parser.Workflows.Grammar;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Bb.VisualStudio.Parser.Workflows.Grammar;
 
-namespace Bb.VisualStudio.Parser.Workflows.Grammar
+namespace Bb.VisualStudio.Parser.Workflows
 {
-
     public class WorkflowConfigParser
     {
 
         private WorkflowConfigParser(TextWriter output, TextWriter outputError)
         {
+
             this.Output = output ?? Console.Out;
             this.OutputError = outputError ?? Console.Error;
             this._includes = new HashSet<string>();
@@ -28,9 +28,7 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
             {
                 File = sourceFile ?? string.Empty,
                 Content = source,
-                Crc = source.ToString().GetHashCode(),
             };
-
             parser.ParseCharStream(stream);
             return parser;
 
@@ -56,8 +54,11 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
         public object Visit<Result>(IParseTreeVisitor<Result> visitor)
         {
 
-            if (visitor is IFile f)
-                f.Filename = this.File;
+            //if (visitor is IFile f)
+            //    f.Filename = this.File;
+
+            if (System.Diagnostics.Debugger.IsAttached)
+                System.Diagnostics.Trace.WriteLine(this.File);
 
             var context = this._context;
             return visitor.Visit(context);
@@ -93,8 +94,7 @@ namespace Bb.VisualStudio.Parser.Workflows.Grammar
 
         private WorkflowParser _parser;
         private WorkflowParser.ScriptContext _context;
-        public bool IsFragment { get; private set; }
-        public int Crc { get; private set; }
-    }
 
+        public bool IsFragment { get; private set; }
+    }
 }
